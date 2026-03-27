@@ -9,6 +9,11 @@ router = DefaultRouter()
 router.register(r'songs', SongViewSet, basename='song')
 router.register(r'playlists', PlaylistViewSet, basename='playlist')
 
+admin.site.site_header = "MusiConnect Admin"
+admin.site.site_title = "MusiConnect Admin Portal"
+admin.site.index_title = "Welcome to MusiConnect Admin Portal"
+admin.site.site_url = "http://localhost:5173/"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/register/', RegisterView.as_view(), name='register'),
