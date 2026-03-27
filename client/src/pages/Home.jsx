@@ -60,19 +60,21 @@ const Home = () => {
           <Disc3 className="animate-spin" size={48} style={{ color: 'var(--primary)' }} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {songs.map(song => (
-            <div key={song.id} className="glass-panel p-6 flex flex-col justify-between" style={{ transition: 'transform 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-              <div>
-                <div style={{ width: '100%', height: '200px', backgroundColor: 'var(--surface-hover)', borderRadius: '12px', marginBottom: '1rem', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div key={song.id} className="glass-panel p-4 flex flex-col justify-between" style={{ transition: 'transform 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+              <div className="flex gap-4 items-center mb-4">
+                <div style={{ width: '80px', height: '80px', flexShrink: 0, backgroundColor: 'var(--surface-hover)', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {song.cover_image ? (
                     <img src={song.cover_image} alt={song.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <Music size={64} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                    <Music size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
                   )}
                 </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '0.25rem' }}>{song.title}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{song.artist}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.title}</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{song.artist}</p>
+                </div>
               </div>
               
               <div className="flex justify-between items-center mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
