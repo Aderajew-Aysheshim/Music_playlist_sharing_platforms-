@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Playlists from './pages/Playlists';
 import Upload from './pages/Upload';
+import Footer from './components/Footer';
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -21,6 +22,7 @@ function App() {
           <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
         </Routes>
       </div>
+      <Footer />
     </Router>
   );
 }
