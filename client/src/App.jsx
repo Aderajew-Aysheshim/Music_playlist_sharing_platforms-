@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Playlists from './pages/Playlists';
+import Upload from './pages/Upload';
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/playlists" element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />} />
+          <Route path="/upload" element={isAuthenticated ? <Upload /> : <Navigate to="/login" />} />
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
           <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
         </Routes>

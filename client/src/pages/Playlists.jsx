@@ -107,7 +107,7 @@ const Playlists = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <a href={song.audio_file} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%' }}>
+                        <a href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%' }}>
                           <Download size={16} />
                         </a>
                         <button onClick={() => removeSong(playlist.id, song.id)} className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%' }}>

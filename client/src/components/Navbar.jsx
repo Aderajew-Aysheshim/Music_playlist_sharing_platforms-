@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, LogOut, User, Menu } from 'lucide-react';
+import { Music, LogOut, User, Menu, Upload as UploadIcon } from 'lucide-react';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -24,6 +24,10 @@ function Navbar() {
         <div className="flex items-center gap-6">
           {token ? (
             <>
+              <Link to="/upload" className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                <UploadIcon size={18} />
+                Upload
+              </Link>
               <Link to="/playlists" className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                 <Music size={18} />
                 My Playlists
