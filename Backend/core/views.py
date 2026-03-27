@@ -75,6 +75,21 @@ class PlaylistViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        playlist = serializer.save(user=self.request.user)
+        
+        artist = request.data.get('artist')
+        if artist:
+            songs = Song.objects.filter(artist__iexact=artist)
+            playlist.songs.add(*songs)
+            
+        headers = self.get_success_headers(serializer.data)
+        
+        response_serializer = self.get_serializer(playlist)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         
     @action(detail=True, methods=['post'])
     def add_song(self, request, pk=None):

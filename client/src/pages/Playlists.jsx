@@ -60,12 +60,12 @@ const Playlists = () => {
       </div>
 
       <form onSubmit={createPlaylist} className="glass-panel p-6 mb-8 flex gap-4 items-center" style={{ borderRadius: '12px' }}>
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={newPlaylistName}
           onChange={(e) => setNewPlaylistName(e.target.value)}
-          placeholder="New playlist name..." 
-          className="form-input" 
+          placeholder="New playlist name..."
+          className="form-input"
           style={{ flex: 1, margin: 0 }}
         />
         <button type="submit" className="btn-primary flex items-center gap-2">
@@ -99,7 +99,7 @@ const Playlists = () => {
                       <div className="flex items-center gap-4">
                         <div style={{ color: 'var(--text-muted)', width: '20px' }}>{i + 1}</div>
                         <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--surface-hover)', borderRadius: '4px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>
-                          {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/> : <Music size={16} style={{ color: 'var(--text-muted)' }}/>}
+                          {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
                         </div>
                         <div>
                           <div style={{ fontWeight: 500, color: 'white' }}>{song.title}</div>
