@@ -12,17 +12,19 @@ function App() {
 
   return (
     <Router>
-      <Navbar />
-      <div className="container mt-8">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/playlists" element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />} />
-          <Route path="/upload" element={isAuthenticated ? <Upload /> : <Navigate to="/login" />} />
-          <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-        </Routes>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Navbar />
+        <div className="container mt-8" style={{ flex: 1 }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/playlists" element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />} />
+            <Route path="/upload" element={isAuthenticated ? <Upload /> : <Navigate to="/login" />} />
+            <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+            <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+          </Routes>
+        </div>
+        <Footer />
       </div>
-      <Footer />
     </Router>
   );
 }
