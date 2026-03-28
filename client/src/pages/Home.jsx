@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Download, Plus, Disc3, Music } from 'lucide-react';
+import { Play, Download, Plus, Disc3, Music, FileText } from 'lucide-react';
 import api from '../api/axios';
 import { usePlayer } from '../context/PlayerContext';
 
@@ -7,6 +7,8 @@ const Home = () => {
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedLyrics, setExpandedLyrics] = useState(null); // track song ID for lyrics
+
   const { playSong, currentSong, isPlaying } = usePlayer();
   const token = localStorage.getItem('token');
 
@@ -47,6 +49,10 @@ const Home = () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const toggleLyrics = (songId) => {
+    setExpandedLyrics(expandedLyrics === songId ? null : songId);
   };
 
   return (
@@ -119,15 +125,34 @@ const Home = () => {
                   </div>
                 </div>
 
+                {song.lyrics && expandedLyrics === song.id && (
+                  <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)', fontSize: '0.85rem', color: 'var(--text-muted)', maxHeight: '150px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                    {song.lyrics}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <button
-                    id={`play-song-${song.id}`}
-                    onClick={() => handlePlay(song)}
-                    className="btn-primary"
-                    style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Play size={20} />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      id={`play-song-${song.id}`}
+                      onClick={() => handlePlay(song)}
+                      className="btn-primary"
+                      style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Play size={20} />
+                    </button>
+
+                    {song.lyrics && (
+                       <button
+                         onClick={() => toggleLyrics(song.id)}
+                         className="btn-secondary"
+                         title={expandedLyrics === song.id ? "Hide Lyrics" : "Show Lyrics"}
+                         style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: expandedLyrics === song.id ? 'var(--primary)' : 'inherit', border: expandedLyrics === song.id ? '1px solid var(--primary)' : '1px solid var(--border)' }}
+                       >
+                         <FileText size={18} />
+                       </button>
+                    )}
+                  </div>
 
                   <div className="flex gap-2">
                     <a

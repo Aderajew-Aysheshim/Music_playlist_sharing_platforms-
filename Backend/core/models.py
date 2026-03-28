@@ -6,6 +6,7 @@ class Song(models.Model):
     artist = models.CharField(max_length=255)
     audio_file = models.FileField(upload_to='songs/')
     cover_image = models.ImageField(upload_to='covers/', null=True, blank=True)
+    lyrics = models.TextField(null=True, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_songs')
     created_at = models.DateTimeField(auto_now_add=True)
 
