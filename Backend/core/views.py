@@ -66,6 +66,11 @@ class SongViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="{song.audio_file.name}"'
         return response
 
+class PublicPlaylistViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Playlist.objects.all().order_by('-created_at')
+    serializer_class = PlaylistSerializer
+    permission_classes = [AllowAny]
+
 class PlaylistViewSet(viewsets.ModelViewSet):
     serializer_class = PlaylistSerializer
     permission_classes = [IsAuthenticated]
@@ -112,3 +117,4 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             return Response({'status': 'song removed'}, status=status.HTTP_200_OK)
         except Song.DoesNotExist:
             return Response({'error': 'Song not found'}, status=status.HTTP_404_NOT_FOUND)
+

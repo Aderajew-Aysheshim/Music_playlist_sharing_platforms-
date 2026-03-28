@@ -3,11 +3,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from core.views import RegisterView, LoginView, LogoutView, SongViewSet, PlaylistViewSet
+from core.views import RegisterView, LoginView, LogoutView, SongViewSet, PlaylistViewSet, PublicPlaylistViewSet
 
 router = DefaultRouter()
 router.register(r'songs', SongViewSet, basename='song')
 router.register(r'playlists', PlaylistViewSet, basename='playlist')
+router.register(r'browse', PublicPlaylistViewSet, basename='browse')
 
 admin.site.site_header = "MusiConnect Admin"
 admin.site.site_title = "MusiConnect Admin Portal"

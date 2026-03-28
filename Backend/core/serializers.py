@@ -20,6 +20,7 @@ class SongSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.ModelSerializer):
     songs = SongSerializer(many=True, read_only=True)
+    owner_name = serializers.CharField(source='user.username', read_only=True)
     class Meta:
         model = Playlist
         fields = '__all__'

@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Playlists from './pages/Playlists';
 import Upload from './pages/Upload';
+import Browse from './pages/Browse';
 import Footer from './components/Footer';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <div className="container mt-8" style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/browse" element={<Browse />} />
             <Route path="/playlists" element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />} />
             <Route path="/upload" element={isAuthenticated ? <Upload /> : <Navigate to="/login" />} />
             <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
