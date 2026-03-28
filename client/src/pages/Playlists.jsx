@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Music, Download, Play, Plus, X, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, Music, Download, Play, Plus, X, Search, ChevronDown, ChevronUp, Pause } from 'lucide-react';
 import api from '../api/axios';
+import { usePlayer } from '../context/PlayerContext';
 
 const Playlists = () => {
   const [playlists, setPlaylists] = useState([]);
@@ -10,9 +11,10 @@ const Playlists = () => {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  const [addingSongsTo, setAddingSongsTo] = useState(null); // playlist id for the add-song panel
+  const [addingSongsTo, setAddingSongsTo] = useState(null); 
   const [songSearch, setSongSearch] = useState('');
-  const [currentSong, setCurrentSong] = useState(null);
+  
+  const { playSong, currentSong, isPlaying } = usePlayer();
 
   useEffect(() => {
     fetchPlaylists();
@@ -99,13 +101,16 @@ const Playlists = () => {
     );
   };
 
+  const handlePlaySong = (song, playlistSongs) => {
+    playSong(song, playlistSongs);
+  };
+
   return (
-    <div style={{ paddingBottom: currentSong ? '120px' : '40px' }}>
+    <div style={{ paddingBottom: '40px' }}>
       <div className="flex justify-between items-center mb-8">
         <h1 className="heading" style={{ fontSize: '3rem', margin: 0 }}>My Playlists</h1>
       </div>
 
-      {/* Create playlist form */}
       <form onSubmit={createPlaylist} className="glass-panel p-6 mb-8 flex flex-wrap gap-4 items-center" style={{ borderRadius: '12px' }}>
         <input
           type="text"
@@ -141,7 +146,6 @@ const Playlists = () => {
         <div className="flex flex-col gap-6">
           {playlists.map(playlist => (
             <div key={playlist.id} className="glass-panel" style={{ overflow: 'hidden' }}>
-              {/* Playlist header */}
               <div className="flex justify-between items-center p-6">
                 <div className="flex items-center gap-4" style={{ flex: 1, cursor: 'pointer' }} onClick={() => toggleExpand(playlist.id)}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -172,7 +176,6 @@ const Playlists = () => {
                 </div>
               </div>
 
-              {/* Add Songs Panel */}
               {addingSongsTo === playlist.id && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '1.5rem', background: 'rgba(139,92,246,0.05)' }}>
                   <div className="flex justify-between items-center mb-4">
@@ -221,7 +224,6 @@ const Playlists = () => {
                 </div>
               )}
 
-              {/* Songs in playlist */}
               {expandedId === playlist.id && (
                 <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 1.5rem 1.5rem' }}>
                   {playlist.songs.length === 0 ? (
@@ -230,54 +232,46 @@ const Playlists = () => {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2" style={{ marginTop: '0.75rem' }}>
-                      {playlist.songs.map((song, i) => (
-                        <div key={song.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent' }}>
-                          <div className="flex items-center gap-4">
-                            <span style={{ color: 'var(--text-muted)', width: '22px', textAlign: 'center', fontSize: '0.85rem' }}>{i + 1}</span>
-                            <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--surface-hover)', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
+                      {playlist.songs.map((song, i) => {
+                        const isActive = currentSong?.id === song.id;
+                        return (
+                          <div key={song.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: isActive ? 'rgba(139, 92, 246, 0.1)' : i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent', border: isActive ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid transparent' }}>
+                            <div className="flex items-center gap-4">
+                              <span style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)', width: '22px', textAlign: 'center', fontSize: '0.85rem' }}>
+                                {isActive && isPlaying ? (
+                                  <div className="now-playing-bars mini">
+                                    <span /><span /><span />
+                                  </div>
+                                ) : i + 1}
+                              </span>
+                              <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--surface-hover)', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 500, color: isActive ? 'var(--primary)' : 'white' }}>{song.title}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{song.artist}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 500, color: 'white' }}>{song.title}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{song.artist}</div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handlePlaySong(song, playlist.songs)} className={isActive ? "btn-primary" : "btn-secondary"} style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {isActive && isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                              </button>
+                              <a href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Download size={14} />
+                              </a>
+                              <button onClick={() => removeSong(playlist.id, song.id)} style={{ padding: '0.4rem', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }}>
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setCurrentSong(song)} className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%' }}>
-                              <Play size={16} />
-                            </button>
-                            <a href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', display: 'flex', alignItems: 'center' }}>
-                              <Download size={16} />
-                            </a>
-                            <button onClick={() => removeSong(playlist.id, song.id)} style={{ padding: '0.4rem', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Sticky Audio Player */}
-      {currentSong && (
-        <div className="glass-panel" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '90%', maxWidth: '800px', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', zIndex: 50, borderRadius: '999px', backdropFilter: 'blur(20px)' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', backgroundColor: 'var(--surface-hover)', flexShrink: 0 }}>
-            {currentSong.cover_image ? <img src={currentSong.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={24} style={{ margin: '12px', color: 'var(--text-muted)' }} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentSong.title}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{currentSong.artist}</div>
-          </div>
-          <div style={{ flex: 2 }}>
-            <audio src={currentSong.audio_file} controls autoPlay style={{ width: '100%', height: '36px' }} />
-          </div>
-          <button onClick={() => setCurrentSong(null)} style={{ color: 'var(--text-muted)', flexShrink: 0 }}><X size={20} /></button>
         </div>
       )}
     </div>
