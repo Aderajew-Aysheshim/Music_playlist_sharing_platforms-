@@ -1,8 +1,7 @@
-# Music Playlist Sharing Platforms
+# Music Playlist Sharing Platform
 
-Repository structure:
+## Project description
+(team’s description here)
 
-- `Backend/` Django REST API
-- `client/` frontend application
-
-Backend setup and API details are documented in [Backend/README.md](C:/Users/hp/Music_playlist_sharing_platforms-/Backend/README.md).
+## Screenshots
+(your screenshots or notes here)
