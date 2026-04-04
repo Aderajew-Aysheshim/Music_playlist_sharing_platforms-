@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Music, Download, Play, Plus, X, Search, ChevronDown, ChevronUp, Pause } from 'lucide-react';
 import api from '../api/axios';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer } from '../context/Player';
 
 const Playlists = () => {
   const [playlists, setPlaylists] = useState([]);
