@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from .models import Playlist, Song
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ['id', 'username', 'email']
 
 class SongSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,11 +15,12 @@ class SongSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    song_count = serializers.SerializerMethodField()
+    song_count = serializers.ReadOnlyField()
+    created_ago = serializers.SerializerMethodField()
     
     class Meta:
         model = Playlist
         fields = '__all__'
     
-    def get_song_count(self, obj):
-        return obj.makda_songs.count()
+    def get_created_ago(self, obj):
+        return obj.created_at.strftime("%b %d, %Y")
