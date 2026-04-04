@@ -1,70 +1,39 @@
-const BASE_URL = "http://127.0.0.1:8000/api";
+import axios from 'axios';
 
-// Helper: Fetch with auth + auto refresh
-async function fetchWithAuth(url, options = {}) {
-  const accessToken = localStorage.getItem("access_token");
-  const refreshToken = localStorage.getItem("refresh_token");
+const api = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api/',
+});
 
-  options.headers = {
-    ...options.headers,
-    "Content-Type": "application/json",
-    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-  };
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-  let res = await fetch(url, options);
-
-  if (res.status === 401 && refreshToken) {
-    // Try refreshing token
-    const refreshRes = await fetch(`${BASE_URL}/token/refresh/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
-
-    if (!refreshRes.ok) {
-      localStorage.clear();
-      window.location.href = "/login"; // redirect to login
-      return;
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          // Note: You might need a dedicated refresh endpoint in total real-world cases,
+          // but here we are simplifying or assuming the backend logout/login logic.
+          // For now, if 401 happens, we just logout to keep it secure/simple.
+          localStorage.clear();
+          window.location.href = '/login';
+        } catch (refreshError) {
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      }
     }
-
-    const refreshData = await refreshRes.json();
-    localStorage.setItem("access_token", refreshData.access);
-
-    // Retry original request
-    options.headers.Authorization = `Bearer ${refreshData.access}`;
-    res = await fetch(url, options);
+    return Promise.reject(error);
   }
+);
 
-  if (res.status === 403) {
-    alert("No permission");
-    throw new Error("Forbidden");
-  }
-
-  return res.json();
-}
-
-// GET paginated playlists
-export const getPlaylists = async (page = 1) => {
-  const data = await fetchWithAuth(`${BASE_URL}/playlists/?page=${page}`);
-  return data.results || data; // handle pagination
-};
-
-// GET playlist details (including songs)
-export const getPlaylistDetail = async (id) => {
-  return await fetchWithAuth(`${BASE_URL}/playlists/${id}/`);
-};
-
-// CREATE playlist
-export const createPlaylist = async (playlistData) => {
- 
-  const payload = {
-    name: playlistData.name,
-    description: playlistData.description || "",
-    is_public: playlistData.is_public ?? true,
-  };
-
-  return await fetchWithAuth(`${BASE_URL}/playlists/`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-};
+export default api;
