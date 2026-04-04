@@ -10,7 +10,7 @@ const Home = () => {
   const [expandedLyrics, setExpandedLyrics] = useState(null); // track song ID for lyrics
 
   const { playSong, currentSong, isPlaying } = usePlayer();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
 
   useEffect(() => {
     fetchSongs();

@@ -1,15 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Music, LogOut, User, Menu, Upload as UploadIcon, ListMusic } from 'lucide-react';
+import api from '../api/axios';
 
 function Navbar() {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      await api.post('logout/', { refresh: refreshToken });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    localStorage.clear();
     navigate('/login');
     window.location.reload();
   };

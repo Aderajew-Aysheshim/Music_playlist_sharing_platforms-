@@ -12,7 +12,8 @@ const Register = () => {
     e.preventDefault();
     try {
       const { data } = await api.post('register/', formData);
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('accessToken', data.tokens.access);
+      localStorage.setItem('refreshToken', data.tokens.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
       window.location.href = '/';
     } catch (err) {
@@ -36,7 +37,7 @@ const Register = () => {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="johndoe"
+              placeholder="Ad"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required 
@@ -47,7 +48,7 @@ const Register = () => {
             <input 
               type="email" 
               className="form-input" 
-              placeholder="john@example.com"
+              placeholder="ad@example.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required 

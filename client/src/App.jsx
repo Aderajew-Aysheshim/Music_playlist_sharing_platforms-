@@ -11,7 +11,7 @@ import MusicPlayer from './components/MusicPlayer';
 import { usePlayer } from './context/PlayerContext';
 
 function AppContent() {
-  const isAuthenticated = !!localStorage.getItem('token');
+  const isAuthenticated = !!localStorage.getItem('accessToken');
   const { currentSong } = usePlayer();
 
   return (

@@ -12,7 +12,8 @@ const Login = () => {
     e.preventDefault();
     try {
       const { data } = await api.post('login/', formData);
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('accessToken', data.tokens.access);
+      localStorage.setItem('refreshToken', data.tokens.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
       window.location.href = '/';
     } catch (err) {
