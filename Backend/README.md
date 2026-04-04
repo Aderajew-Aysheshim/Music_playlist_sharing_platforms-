@@ -1,93 +1,90 @@
-# MusiConnect Backend API Documentation
+# MusiConnect Backend
 
-Welcome to the backend of the **MusiConnect** Playlist Sharing Application! This documentation provides a comprehensive guide to understanding the backend architecture, the database schema, and the exact API endpoints powering the platform.
+Django REST API for a music playlist sharing platform.
 
----
+## What It Supports
 
-## 🛠 Technology Stack
-- **Framework:** Django 5+
-- **API Architecture:** Django REST Framework (DRF)
-- **Database:** SQLite (Default, configured for portability)
-- **Authentication:** Token-based Authentication via `rest_framework.authtoken`
-- **Media File Storage:** Local Filesystem (`/media/` folder)
+- JWT registration, login, logout, and token refresh
+- Song upload with basic file validation
+- Secure song updates and deletes by uploader only
+- Song streaming endpoint
+- Playlist create, list, retrieve, update, and delete
+- Ordered songs inside playlists
+- Public and private playlists
+- Shareable token-based playlist links
+- Collaborators with `editor` and `viewer` roles
+- Playlist comments and likes
+- Pagination, search, filtering, and ordering
+- Django admin for all core models
 
----
+## Main Endpoints
 
-## 🗄️ Database Models (Schema)
+- `POST /api/register/`
+- `POST /api/login/`
+- `POST /api/logout/`
+- `POST /api/token/refresh/`
+- `GET /api/songs/`
+- `POST /api/songs/`
+- `GET /api/songs/{id}/`
+- `PATCH /api/songs/{id}/`
+- `DELETE /api/songs/{id}/`
+- `GET /api/songs/{id}/stream/`
+- `GET /api/playlists/`
+- `POST /api/playlists/`
+- `GET /api/playlists/{id}/`
+- `PUT /api/playlists/{id}/`
+- `DELETE /api/playlists/{id}/`
+- `POST /api/playlists/{id}/add_song/`
+- `POST /api/playlists/{id}/remove_song/`
+- `GET /api/public/playlists/`
+- `GET /api/public/playlists/{id}/`
+- `GET /api/share/{token}/`
+- `GET /api/playlists/{id}/collaborators/`
+- `POST /api/playlists/{id}/collaborators/`
+- `PUT /api/playlists/{id}/collaborators/{collaborator_id}/`
+- `DELETE /api/playlists/{id}/collaborators/{collaborator_id}/`
+- `GET /api/playlists/{id}/comments/`
+- `POST /api/playlists/{id}/comments/`
+- `PUT /api/playlists/{id}/comments/{comment_id}/`
+- `DELETE /api/playlists/{id}/comments/{comment_id}/`
+- `POST /api/playlists/{id}/like/`
+- `DELETE /api/playlists/{id}/like/`
 
-The database consists of 3 primary entities: **Users**, **Songs**, and **Playlists**. 
+## Security Improvements Included
 
-### 1. User
-We rely on Django's built-in robust authentication models.
-- **id** (Integer): Unique ID.
-- **username** (String): Unique username.
-- **email** (String): User's email.
-- **password** (String): Hashed securely.
+- Environment-driven Django settings
+- Default pagination and throttling
+- JWT refresh rotation with blacklist support
+- Restricted CORS configuration by default
+- Upload validation for audio and cover images
+- Owner-only song modification
+- Private playlists hidden unless public, shared, or explicitly authorized
+- Safer repository setup with `.gitignore` and `.env.example`
 
-### 2. Song
-Represents a unique piece of music uploaded to the platform.
-- **id**: Primary Key.
-- **title** (CharField): Title of the song.
-- **artist** (CharField): Artist/Band name.
-- **audio_file** (FileField): The raw media file (MP3, WAV), stored in `media/songs/`.
-- **cover_image** (ImageField): Optional album artwork, stored in `media/covers/`.
-- **uploaded_by** (ForeignKey to User): The user who originally deposited this song into the platform.
-- **created_at** (DateTimeField): Timestamp of upload.
+## Setup
 
-### 3. Playlist
-Represents a curated list of songs belonging to a specific user.
-- **id**: Primary Key.
-- **name** (CharField): Custom name for the playlist.
-- **description** (TextField): Optional description.
-- **user** (ForeignKey to User): The owner of the playlist.
-- **songs** (ManyToManyField to Song): Relationships between songs and this playlist. A playlist can contain many songs, and a song can exist in many playlists.
-- **created_at** (DateTimeField): Timestamp of creation.
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
----
+## Environment Variables
 
-## 📡 API Endpoints
+Use `.env.example` as a starting point.
 
-All API endpoints reside beneath the `http://127.0.0.1:8000/api/` prefix.
+Important settings:
 
-### 🔐 Authentication
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CORS_ALLOWED_ORIGINS`
+- `DJANGO_CORS_ALLOW_ALL_ORIGINS`
 
-| Endpoint | Method | Role | Payload (Body) |
-|----------|--------|------|----------------|
-| `/api/register/` | **POST** | Creates a new user | `{ "username": "x", "email": "x", "password": "x" }` |
-| `/api/login/` | **POST** | Logs in existing user, returns a Token | `{ "username": "x", "password": "x" }` |
-| `/api/logout/` | **POST** | Deletes current token (Requires Auth) | *None* |
+## Running Checks
 
-### 🎵 Song Resources 
-
-| Endpoint | Method | Role | Requirements |
-|----------|--------|------|--------------|
-| `/api/songs/` | **GET** | Fetch all globally available songs | *None (Public)* |
-| `/api/songs/` | **POST** | Upload a new song (Requires Auth) | `multipart/form-data` with `audio_file`, `title`, and `artist` |
-| `/api/songs/{id}/` | **GET** | Retrieve metadata for a specific song | *None (Public)* |
-| `/api/songs/{id}/stream/` | **GET** | Return the raw streaming file as an attachment | *None (Public)* |
-
-### 💽 Playlist Resources
-
-All playlist actions **strictly require an Authentication Token** (e.g. `Authorization: Token 12345`).
-
-| Endpoint | Method | Role | Payload (Body) |
-|----------|--------|------|----------------|
-| `/api/playlists/` | **GET** | Fetch only the playlists belonging to the *current user* | *None* |
-| `/api/playlists/` | **POST** | Create a brand new empty playlist | `{ "name": "Chill Vibes" }` |
-| `/api/playlists/{id}/` | **DELETE** | Permanently delete a specific playlist | *None* |
-| `/api/playlists/{id}/add_song/` | **POST** | Append an existing song into the playlist | `{ "song_id": 12 }` |
-| `/api/playlists/{id}/remove_song/`| **POST**| Evict an existing song from the playlist | `{ "song_id": 12 }` |
-
----
-
-## 📻 Media Streaming & Download Files
-
-Media storage settings are declared inside `settings.py`.
-- Files natively live within `Backend/media/`
-- They are openly served during development via Django's integrated `static` mechanism.
-
-When the Front-end displays a track, it explicitly queries the `/api/songs/{id}/stream/` endpoint. This custom `FileResponse` function forces the browser to treat it as a proper binary Media Attachment, ensuring that users can correctly **Download** their favorite MP3s onto their local machine!
-
-## 👩‍💻 Admin Panel
-- **URL**: `http://127.0.0.1:8000/admin/`
-- Every table is fully visible beneath the "Core" section. The Administrator dashboard acts directly upon raw database objects.
+```bash
+python manage.py check
+python manage.py test
+```
