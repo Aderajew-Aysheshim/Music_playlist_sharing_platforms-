@@ -3,7 +3,22 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from core.views import RegisterView, LoginView, LogoutView, SongViewSet, PlaylistViewSet, PublicPlaylistViewSet
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from core.views import (
+    LoginView,
+    LogoutView,
+    PlaylistCollaboratorDetailAPIView,
+    PlaylistCollaboratorListCreateAPIView,
+    PlaylistCommentDetailAPIView,
+    PlaylistCommentListCreateAPIView,
+    PlaylistLikeAPIView,
+    PlaylistViewSet,
+    PublicPlaylistViewSet,
+    RegisterView,
+    SharedPlaylistRetrieveAPIView,
+    SongViewSet,
+)
 
 router = DefaultRouter()
 router.register(r'songs', SongViewSet, basename='song')
@@ -20,6 +35,43 @@ urlpatterns = [
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/login/', LoginView.as_view(), name='login'),
     path('api/logout/', LogoutView.as_view(), name='logout'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path(
+        'api/public/playlists/',
+        PublicPlaylistViewSet.as_view({'get': 'list'}),
+        name='public-playlist-list',
+    ),
+    path(
+        'api/public/playlists/<int:pk>/',
+        PublicPlaylistViewSet.as_view({'get': 'retrieve'}),
+        name='public-playlist-detail',
+    ),
+    path(
+        'api/playlists/<int:pk>/collaborators/',
+        PlaylistCollaboratorListCreateAPIView.as_view(),
+        name='playlist-collaborator-list',
+    ),
+    path(
+        'api/playlists/<int:pk>/collaborators/<int:collaborator_id>/',
+        PlaylistCollaboratorDetailAPIView.as_view(),
+        name='playlist-collaborator-detail',
+    ),
+    path(
+        'api/playlists/<int:pk>/comments/',
+        PlaylistCommentListCreateAPIView.as_view(),
+        name='playlist-comment-list',
+    ),
+    path(
+        'api/playlists/<int:pk>/comments/<int:comment_id>/',
+        PlaylistCommentDetailAPIView.as_view(),
+        name='playlist-comment-detail',
+    ),
+    path(
+        'api/playlists/<int:pk>/like/',
+        PlaylistLikeAPIView.as_view(),
+        name='playlist-like',
+    ),
+    path('api/share/<str:token>/', SharedPlaylistRetrieveAPIView.as_view(), name='shared-playlist'),
     path('api/', include(router.urls)),
 ]
 
