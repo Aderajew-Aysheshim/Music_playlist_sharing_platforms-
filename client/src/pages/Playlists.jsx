@@ -1,279 +1,758 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Music, Download, Play, Plus, X, Search, ChevronDown, ChevronUp, Pause } from 'lucide-react';
+import {
+  Copy,
+  Globe,
+  Heart,
+  Lock,
+  Music,
+  Pause,
+  Play,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+
 import api from '../api/axios';
+import { getResults, normalizePlaylist, normalizeSongs } from '../api/adapters';
+import PlaylistComments from '../components/PlaylistComments';
+import PlaylistCollaborators from '../components/PlaylistCollaborators';
 import { usePlayer } from '../context/PlayerContext';
+import { getStoredUser } from '../utils/session';
+
+const defaultPlaylistForm = {
+  name: '',
+  description: '',
+  is_public: false,
+};
 
 const Playlists = () => {
   const [playlists, setPlaylists] = useState([]);
   const [allSongs, setAllSongs] = useState([]);
-  const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [selectedArtist, setSelectedArtist] = useState('');
-  const [artists, setArtists] = useState([]);
+  const [playlistForm, setPlaylistForm] = useState(defaultPlaylistForm);
+  const [settingsDrafts, setSettingsDrafts] = useState({});
+  const [commentsByPlaylist, setCommentsByPlaylist] = useState({});
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [collaboratorsByPlaylist, setCollaboratorsByPlaylist] = useState({});
+  const [collaboratorDrafts, setCollaboratorDrafts] = useState({});
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  const [addingSongsTo, setAddingSongsTo] = useState(null); 
+  const [addingSongsTo, setAddingSongsTo] = useState(null);
   const [songSearch, setSongSearch] = useState('');
-  
+  const [feedback, setFeedback] = useState('');
+
   const { playSong, currentSong, isPlaying } = usePlayer();
+  const user = getStoredUser();
 
   useEffect(() => {
-    fetchPlaylists();
-    fetchAllSongs();
+    fetchLibrary();
   }, []);
 
-  const fetchAllSongs = async () => {
-    try {
-      const { data } = await api.get('songs/');
-      setAllSongs(data);
-      const unique = [...new Set(data.map(s => s.artist))].filter(Boolean);
-      setArtists(unique);
-    } catch (err) {
-      console.error(err);
-    }
+  const setPageFeedback = (message) => {
+    setFeedback(message);
+    window.setTimeout(() => setFeedback(''), 2400);
   };
 
-  const fetchPlaylists = async () => {
+  const hydratePlaylistState = (detailedPlaylists) => {
+    setPlaylists(detailedPlaylists);
+    setSettingsDrafts(
+      Object.fromEntries(
+        detailedPlaylists.map((playlist) => [
+          playlist.id,
+          {
+            name: playlist.name,
+            description: playlist.description || '',
+            is_public: playlist.isPublic,
+          },
+        ]),
+      ),
+    );
+    setCollaboratorsByPlaylist((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        detailedPlaylists
+          .filter((playlist) => playlist.userRole === 'owner')
+          .map((playlist) => [playlist.id, playlist.collaborators || []]),
+      ),
+    }));
+  };
+
+  const loadPlaylistDetails = async (playlistSummaries) => {
+    if (!playlistSummaries.length) {
+      return [];
+    }
+
+    return Promise.all(
+      playlistSummaries.map(async (playlist) => {
+        try {
+          const detailResponse = await api.get(`playlists/${playlist.id}/`);
+          return normalizePlaylist(detailResponse.data);
+        } catch (detailError) {
+          console.error(detailError);
+          return normalizePlaylist(playlist);
+        }
+      }),
+    );
+  };
+
+  const fetchLibrary = async () => {
+    setLoading(true);
+
     try {
-      const { data } = await api.get('playlists/');
-      setPlaylists(data);
-    } catch (err) {
-      console.error(err);
+      const [playlistResponse, songsResponse] = await Promise.all([
+        api.get('playlists/'),
+        api.get('songs/'),
+      ]);
+
+      const playlistSummaries = getResults(playlistResponse.data);
+      const detailedPlaylists = await loadPlaylistDetails(playlistSummaries);
+      hydratePlaylistState(detailedPlaylists);
+      setAllSongs(normalizeSongs(songsResponse.data));
+    } catch (error) {
+      console.error(error);
+      setPlaylists([]);
+      setAllSongs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const createPlaylist = async (e) => {
-    e.preventDefault();
-    if (!newPlaylistName) return;
+  const refreshPlaylist = async (playlistId) => {
     try {
-      await api.post('playlists/', { name: newPlaylistName, artist: selectedArtist });
-      setNewPlaylistName('');
-      setSelectedArtist('');
-      fetchPlaylists();
-    } catch (err) {
-      console.error(err);
+      const { data } = await api.get(`playlists/${playlistId}/`);
+      const normalized = normalizePlaylist(data);
+      setPlaylists((current) =>
+        current.map((playlist) => (playlist.id === playlistId ? normalized : playlist)),
+      );
+      setSettingsDrafts((current) => ({
+        ...current,
+        [playlistId]: {
+          name: normalized.name,
+          description: normalized.description || '',
+          is_public: normalized.isPublic,
+        },
+      }));
+
+      if (normalized.userRole === 'owner') {
+        setCollaboratorsByPlaylist((current) => ({
+          ...current,
+          [playlistId]: normalized.collaborators || [],
+        }));
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const deletePlaylist = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this playlist?')) return;
+  const createPlaylist = async (event) => {
+    event.preventDefault();
+    if (!playlistForm.name.trim()) {
+      return;
+    }
+
     try {
-      await api.delete(`playlists/${id}/`);
-      if (expandedId === id) setExpandedId(null);
-      if (addingSongsTo === id) setAddingSongsTo(null);
-      fetchPlaylists();
-    } catch (err) {
-      console.error(err);
+      await api.post('playlists/', {
+        name: playlistForm.name.trim(),
+        description: playlistForm.description.trim(),
+        is_public: playlistForm.is_public,
+      });
+      setPlaylistForm(defaultPlaylistForm);
+      setPageFeedback('Playlist created.');
+      fetchLibrary();
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not create the playlist.');
+    }
+  };
+
+  const deletePlaylist = async (playlistId) => {
+    if (!window.confirm('Delete this playlist permanently?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`playlists/${playlistId}/`);
+      setPlaylists((current) => current.filter((playlist) => playlist.id !== playlistId));
+      if (expandedId === playlistId) {
+        setExpandedId(null);
+      }
+      if (addingSongsTo === playlistId) {
+        setAddingSongsTo(null);
+      }
+      setPageFeedback('Playlist deleted.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not delete the playlist.');
+    }
+  };
+
+  const savePlaylistSettings = async (playlistId) => {
+    try {
+      await api.patch(`playlists/${playlistId}/`, settingsDrafts[playlistId]);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Playlist settings saved.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not save playlist settings.');
     }
   };
 
   const addSong = async (playlistId, songId) => {
     try {
       await api.post(`playlists/${playlistId}/add_song/`, { song_id: songId });
-      fetchPlaylists();
-    } catch (err) {
-      console.error(err);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Song added to playlist.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not add this song.');
     }
   };
 
   const removeSong = async (playlistId, songId) => {
     try {
       await api.post(`playlists/${playlistId}/remove_song/`, { song_id: songId });
-      fetchPlaylists();
-    } catch (err) {
-      console.error(err);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Song removed from playlist.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not remove this song.');
     }
   };
 
-  const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
-  const toggleAddSongs = (id) => {
-    setAddingSongsTo(addingSongsTo === id ? null : id);
+  const fetchComments = async (playlistId) => {
+    try {
+      const { data } = await api.get(`playlists/${playlistId}/comments/`);
+      setCommentsByPlaylist((current) => ({
+        ...current,
+        [playlistId]: getResults(data),
+      }));
+    } catch (error) {
+      console.error(error);
+      setCommentsByPlaylist((current) => ({
+        ...current,
+        [playlistId]: [],
+      }));
+    }
+  };
+
+  const addComment = async (playlistId) => {
+    const content = (commentDrafts[playlistId] || '').trim();
+    if (!content) {
+      return;
+    }
+
+    try {
+      await api.post(`playlists/${playlistId}/comments/`, { content });
+      setCommentDrafts((current) => ({ ...current, [playlistId]: '' }));
+      await fetchComments(playlistId);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Comment posted.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not post the comment.');
+    }
+  };
+
+  const deleteComment = async (playlistId, commentId) => {
+    try {
+      await api.delete(`playlists/${playlistId}/comments/${commentId}/`);
+      await fetchComments(playlistId);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Comment removed.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not delete the comment.');
+    }
+  };
+
+  const fetchCollaborators = async (playlistId) => {
+    try {
+      const { data } = await api.get(`playlists/${playlistId}/collaborators/`);
+      setCollaboratorsByPlaylist((current) => ({
+        ...current,
+        [playlistId]: getResults(data),
+      }));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const addCollaborator = async (playlistId) => {
+    const draft = collaboratorDrafts[playlistId] || { username: '', role: 'viewer' };
+    if (!draft.username.trim()) {
+      return;
+    }
+
+    try {
+      await api.post(`playlists/${playlistId}/collaborators/`, {
+        username: draft.username.trim(),
+        role: draft.role,
+      });
+      setCollaboratorDrafts((current) => ({
+        ...current,
+        [playlistId]: { username: '', role: 'viewer' },
+      }));
+      await fetchCollaborators(playlistId);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Collaborator added.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not add that collaborator.');
+    }
+  };
+
+  const updateCollaboratorRole = async (playlistId, collaboratorId, role) => {
+    try {
+      await api.put(`playlists/${playlistId}/collaborators/${collaboratorId}/`, { role });
+      await fetchCollaborators(playlistId);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Collaborator role updated.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not update the collaborator role.');
+    }
+  };
+
+  const removeCollaborator = async (playlistId, collaboratorId) => {
+    try {
+      await api.delete(`playlists/${playlistId}/collaborators/${collaboratorId}/`);
+      await fetchCollaborators(playlistId);
+      await refreshPlaylist(playlistId);
+      setPageFeedback('Collaborator removed.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not remove that collaborator.');
+    }
+  };
+
+  const toggleLike = async (playlist) => {
+    try {
+      const { data } = playlist.isLiked
+        ? await api.delete(`playlists/${playlist.id}/like/`)
+        : await api.post(`playlists/${playlist.id}/like/`);
+
+      setPlaylists((current) =>
+        current.map((item) =>
+          item.id === playlist.id
+            ? { ...item, isLiked: data.liked, likesCount: data.likes_count }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not update likes right now.');
+    }
+  };
+
+  const toggleExpand = async (playlistId) => {
+    const nextExpanded = expandedId === playlistId ? null : playlistId;
+    setExpandedId(nextExpanded);
+
+    if (nextExpanded) {
+      await fetchComments(playlistId);
+      const playlist = playlists.find((item) => item.id === playlistId);
+      if (playlist?.userRole === 'owner') {
+        await fetchCollaborators(playlistId);
+      }
+    }
+  };
+
+  const toggleAddSongs = (playlistId) => {
+    setAddingSongsTo(addingSongsTo === playlistId ? null : playlistId);
     setSongSearch('');
   };
 
-  const getFilteredSongs = (playlist) => {
-    const existingIds = new Set(playlist.songs.map(s => s.id));
-    return allSongs.filter(s =>
-      !existingIds.has(s.id) &&
-      (s.title.toLowerCase().includes(songSearch.toLowerCase()) ||
-       s.artist.toLowerCase().includes(songSearch.toLowerCase()))
-    );
+  const copyShareLink = async (playlist) => {
+    const shareLink = playlist.shareToken
+      ? `${window.location.origin}/shared/${playlist.shareToken}`
+      : playlist.shareUrl;
+
+    if (!shareLink) {
+      setPageFeedback('Share link is not available for this playlist.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setPageFeedback('Share link copied.');
+    } catch (error) {
+      console.error(error);
+      setPageFeedback('Could not copy the share link.');
+    }
   };
 
-  const handlePlaySong = (song, playlistSongs) => {
-    playSong(song, playlistSongs);
-  };
+  const visibleSongsByPlaylist = useMemo(
+    () =>
+      Object.fromEntries(
+        playlists.map((playlist) => {
+          const existingIds = new Set((playlist.songs || []).map((song) => song.id));
+          const filteredSongs = allSongs.filter((song) => {
+            if (existingIds.has(song.id)) {
+              return false;
+            }
+
+            const query = songSearch.toLowerCase();
+            return (
+              song.title.toLowerCase().includes(query)
+              || song.artist.toLowerCase().includes(query)
+            );
+          });
+
+          return [playlist.id, filteredSongs];
+        }),
+      ),
+    [allSongs, playlists, songSearch],
+  );
 
   return (
-    <div style={{ paddingBottom: '40px' }}>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="heading" style={{ fontSize: '3rem', margin: 0 }}>My Playlists</h1>
-      </div>
-
-      <form onSubmit={createPlaylist} className="glass-panel p-6 mb-8 flex flex-wrap gap-4 items-center" style={{ borderRadius: '12px' }}>
-        <input
-          type="text"
-          value={newPlaylistName}
-          onChange={(e) => setNewPlaylistName(e.target.value)}
-          placeholder="New playlist name..."
-          className="form-input"
-          style={{ flex: 1, margin: 0, minWidth: '200px' }}
-        />
-        {artists.length > 0 && (
-          <select
-            value={selectedArtist}
-            onChange={(e) => setSelectedArtist(e.target.value)}
-            className="form-input"
-            style={{ flex: 1, margin: 0, minWidth: '200px', cursor: 'pointer' }}
-          >
-            <option value="">Auto-fill from Artist (Optional)</option>
-            {artists.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        )}
-        <button type="submit" className="btn-primary flex items-center gap-2">
-          <Plus size={20} /> Create
-        </button>
-      </form>
-
-      {loading ? (
-        <div style={{ color: 'var(--text-muted)' }}>Loading...</div>
-      ) : playlists.length === 0 ? (
-        <div className="glass-panel p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-          You don't have any playlists yet.
+    <div className="page-stack">
+      <section className="hero-card">
+        <div className="hero-copy">
+          <span className="page-tag">
+            <Music size={14} />
+            Library workspace
+          </span>
+          <h1>Control the full playlist lifecycle from one page.</h1>
+          <p>
+            Create playlists, tune visibility, copy share links, manage collaborators,
+            like playlists, and keep the comment thread close to the tracks.
+          </p>
+          <div className="metric-row">
+            <span className="metric-pill">{playlists.length} playlists</span>
+            <span className="metric-pill">
+              {playlists.filter((playlist) => playlist.isPublic).length} public
+            </span>
+            <span className="metric-pill">
+              {playlists.filter((playlist) => playlist.userRole === 'editor').length} editor collaborations
+            </span>
+          </div>
         </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {playlists.map(playlist => (
-            <div key={playlist.id} className="glass-panel" style={{ overflow: 'hidden' }}>
-              <div className="flex justify-between items-center p-6">
-                <div className="flex items-center gap-4" style={{ flex: 1, cursor: 'pointer' }} onClick={() => toggleExpand(playlist.id)}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Music size={22} color="white" />
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'white', margin: 0 }}>{playlist.name}</h2>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{playlist.songs.length} song{playlist.songs.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                    {expandedId === playlist.id ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleAddSongs(playlist.id)}
-                    className="btn-primary flex items-center gap-2"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                  >
-                    <Plus size={16} /> Add Songs
-                  </button>
-                  <button
-                    onClick={() => deletePlaylist(playlist.id)}
-                    style={{ padding: '0.5rem', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
 
-              {addingSongsTo === playlist.id && (
-                <div style={{ borderTop: '1px solid var(--border)', padding: '1.5rem', background: 'rgba(139,92,246,0.05)' }}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 style={{ color: 'var(--primary)', fontWeight: 600, margin: 0 }}>Add songs to "{playlist.name}"</h3>
-                    <button onClick={() => setAddingSongsTo(null)} style={{ color: 'var(--text-muted)', display: 'flex' }}><X size={20}/></button>
-                  </div>
-                  <div style={{ position: 'relative', marginBottom: '1rem' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      type="text"
-                      placeholder="Search songs or artists..."
-                      value={songSearch}
-                      onChange={(e) => setSongSearch(e.target.value)}
-                      className="form-input"
-                      style={{ paddingLeft: '2.5rem' }}
-                    />
-                  </div>
-                  <div style={{ maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {getFilteredSongs(playlist).length === 0 ? (
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>
-                        {allSongs.length === 0 ? 'No songs uploaded yet.' : 'All songs already in playlist or no matches found.'}
-                      </p>
-                    ) : (
-                      getFilteredSongs(playlist).map(song => (
-                        <div key={song.id} className="flex items-center justify-between p-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', transition: 'background 0.2s' }}>
-                          <div className="flex items-center gap-3">
-                            <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', backgroundColor: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 500, color: 'white', fontSize: '0.9rem' }}>{song.title}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{song.artist}</div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => addSong(playlist.id, song.id)}
-                            className="btn-primary flex items-center gap-1"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                          >
-                            <Plus size={14} /> Add
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {expandedId === playlist.id && (
-                <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 1.5rem 1.5rem' }}>
-                  {playlist.songs.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0' }}>
-                      No songs yet — click "Add Songs" above!
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2" style={{ marginTop: '0.75rem' }}>
-                      {playlist.songs.map((song, i) => {
-                        const isActive = currentSong?.id === song.id;
-                        return (
-                          <div key={song.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: isActive ? 'rgba(139, 92, 246, 0.1)' : i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent', border: isActive ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid transparent' }}>
-                            <div className="flex items-center gap-4">
-                              <span style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)', width: '22px', textAlign: 'center', fontSize: '0.85rem' }}>
-                                {isActive && isPlaying ? (
-                                  <div className="now-playing-bars mini">
-                                    <span /><span /><span />
-                                  </div>
-                                ) : i + 1}
-                              </span>
-                              <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--surface-hover)', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 500, color: isActive ? 'var(--primary)' : 'white' }}>{song.title}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{song.artist}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => handlePlaySong(song, playlist.songs)} className={isActive ? "btn-primary" : "btn-secondary"} style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {isActive && isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                              </button>
-                              <a href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Download size={14} />
-                              </a>
-                              <button onClick={() => removeSong(playlist.id, song.id)} style={{ padding: '0.4rem', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }}>
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+        <form className="create-panel" onSubmit={createPlaylist}>
+          <div className="section-heading compact">
+            <div>
+              <p className="section-kicker">New playlist</p>
+              <h2>Create a fresh collection</h2>
             </div>
-          ))}
+          </div>
+
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Weekend run mix"
+            value={playlistForm.name}
+            onChange={(event) =>
+              setPlaylistForm((current) => ({ ...current, name: event.target.value }))
+            }
+          />
+          <textarea
+            className="form-input"
+            placeholder="Add a short description"
+            value={playlistForm.description}
+            onChange={(event) =>
+              setPlaylistForm((current) => ({ ...current, description: event.target.value }))
+            }
+          />
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={playlistForm.is_public}
+              onChange={(event) =>
+                setPlaylistForm((current) => ({ ...current, is_public: event.target.checked }))
+              }
+            />
+            <span>Make this playlist public immediately</span>
+          </label>
+          <button className="btn-primary" type="submit">
+            <Plus size={16} />
+            Create playlist
+          </button>
+          {feedback ? <p className="feedback-text">{feedback}</p> : null}
+        </form>
+      </section>
+
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Your playlists</p>
+            <h2>Owned and shared with you</h2>
+          </div>
         </div>
-      )}
+
+        {loading ? (
+          <div className="empty-state">Loading your library...</div>
+        ) : playlists.length === 0 ? (
+          <div className="empty-state">You do not have any playlists yet.</div>
+        ) : (
+          <div className="playlist-stack">
+            {playlists.map((playlist) => {
+              const isExpanded = expandedId === playlist.id;
+              const canEditSongs = playlist.userRole === 'owner' || playlist.userRole === 'editor';
+              const isOwner = playlist.userRole === 'owner';
+              const comments = commentsByPlaylist[playlist.id] || [];
+              const collaborators = collaboratorsByPlaylist[playlist.id] || playlist.collaborators || [];
+              const collaboratorDraft = collaboratorDrafts[playlist.id] || { username: '', role: 'viewer' };
+              const settings = settingsDrafts[playlist.id] || {
+                name: playlist.name,
+                description: playlist.description || '',
+                is_public: playlist.isPublic,
+              };
+
+              return (
+                <article key={playlist.id} className="playlist-card">
+                  <div className="playlist-card-header">
+                    <button className="playlist-summary" onClick={() => toggleExpand(playlist.id)}>
+                      <div className="playlist-summary-art">
+                        {playlist.isPublic ? <Globe size={18} /> : <Lock size={18} />}
+                      </div>
+                      <div className="playlist-summary-copy">
+                        <h3>{playlist.name}</h3>
+                        <p>{playlist.description || 'No description yet.'}</p>
+                        <div className="chip-row">
+                          <span className="metric-pill">{playlist.songCount} songs</span>
+                          <span className="metric-pill">{playlist.likesCount} likes</span>
+                          <span className="metric-pill">{playlist.commentsCount} comments</span>
+                          <span className="metric-pill">{playlist.collaboratorsCount} collaborators</span>
+                          <span className="metric-pill">{playlist.userRole || 'viewer'}</span>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="playlist-header-actions">
+                      <button
+                        className={playlist.isLiked ? 'icon-button accent' : 'icon-button'}
+                        onClick={() => toggleLike(playlist)}
+                      >
+                        <Heart size={16} />
+                      </button>
+                      {isOwner ? (
+                        <>
+                          <button className="icon-button" onClick={() => copyShareLink(playlist)}>
+                            <Copy size={16} />
+                          </button>
+                          <button className="icon-button danger" onClick={() => deletePlaylist(playlist.id)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {isExpanded ? (
+                    <div className="playlist-detail-grid">
+                      <section className="detail-panel">
+                        <div className="detail-panel-header">
+                          <div>
+                            <p className="section-kicker">Tracks</p>
+                            <h4>Ordered playlist songs</h4>
+                          </div>
+                          {canEditSongs ? (
+                            <button
+                              className="btn-secondary compact"
+                              onClick={() => toggleAddSongs(playlist.id)}
+                            >
+                              {addingSongsTo === playlist.id ? <X size={16} /> : <Plus size={16} />}
+                              {addingSongsTo === playlist.id ? 'Close' : 'Add songs'}
+                            </button>
+                          ) : null}
+                        </div>
+
+                        {addingSongsTo === playlist.id && canEditSongs ? (
+                          <div className="embedded-panel">
+                            <div className="search-shell">
+                              <Search size={16} />
+                              <input
+                                type="text"
+                                placeholder="Search uploaded songs"
+                                value={songSearch}
+                                onChange={(event) => setSongSearch(event.target.value)}
+                              />
+                            </div>
+                            <div className="inline-list">
+                              {(visibleSongsByPlaylist[playlist.id] || []).length ? (
+                                visibleSongsByPlaylist[playlist.id].map((song) => (
+                                  <div key={song.id} className="mini-row">
+                                    <div>
+                                      <strong>{song.title}</strong>
+                                      <span>{song.artist}</span>
+                                    </div>
+                                    <button className="btn-primary compact" onClick={() => addSong(playlist.id, song.id)}>
+                                      <Plus size={14} />
+                                      Add
+                                    </button>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="empty-inline">No available songs match this search.</div>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="playlist-song-list">
+                          {playlist.songs.length ? playlist.songs.map((song, index) => {
+                            const isActive = currentSong?.id === song.id;
+
+                            return (
+                              <article key={song.id} className="song-row">
+                                <div className="song-row-main">
+                                  <span className="song-row-index">{song.order || index + 1}</span>
+                                  <div className="song-art">
+                                    {song.coverImageUrl ? (
+                                      <img src={song.coverImageUrl} alt={song.title} />
+                                    ) : (
+                                      <Music size={18} />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h3 className={isActive ? 'is-active' : ''}>{song.title}</h3>
+                                    <p>{song.artist}</p>
+                                  </div>
+                                </div>
+                                <div className="song-row-actions">
+                                  <button
+                                    className={isActive ? 'icon-button accent' : 'icon-button'}
+                                    onClick={() => playSong(song, playlist.songs)}
+                                  >
+                                    {isActive && isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                                  </button>
+                                  {canEditSongs ? (
+                                    <button
+                                      className="icon-button danger"
+                                      onClick={() => removeSong(playlist.id, song.id)}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </article>
+                            );
+                          }) : (
+                            <div className="empty-inline">No songs in this playlist yet.</div>
+                          )}
+                        </div>
+                      </section>
+
+                      <div className="detail-sidebar">
+                        <section className="detail-panel">
+                          <div className="detail-panel-header">
+                            <div>
+                              <p className="section-kicker">Details</p>
+                              <h4>Visibility and sharing</h4>
+                            </div>
+                          </div>
+
+                          {isOwner ? (
+                            <>
+                              <input
+                                className="form-input"
+                                value={settings.name}
+                                onChange={(event) =>
+                                  setSettingsDrafts((current) => ({
+                                    ...current,
+                                    [playlist.id]: {
+                                      ...settings,
+                                      name: event.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                              <textarea
+                                className="form-input"
+                                value={settings.description}
+                                onChange={(event) =>
+                                  setSettingsDrafts((current) => ({
+                                    ...current,
+                                    [playlist.id]: {
+                                      ...settings,
+                                      description: event.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                              <label className="toggle-row">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.is_public}
+                                  onChange={(event) =>
+                                    setSettingsDrafts((current) => ({
+                                      ...current,
+                                      [playlist.id]: {
+                                        ...settings,
+                                        is_public: event.target.checked,
+                                      },
+                                    }))
+                                  }
+                                />
+                                <span>Public playlist</span>
+                              </label>
+                              <button className="btn-primary compact" onClick={() => savePlaylistSettings(playlist.id)}>
+                                <Save size={16} />
+                                Save changes
+                              </button>
+                              {playlist.shareToken ? (
+                                <Link className="btn-secondary compact" to={`/shared/${playlist.shareToken}`}>
+                                  <Copy size={16} />
+                                  Open shared view
+                                </Link>
+                              ) : null}
+                            </>
+                          ) : (
+                            <div className="info-stack">
+                              <span className="metric-pill">
+                                {playlist.isPublic ? 'Public' : 'Private'}
+                              </span>
+                              <p>You can view this playlist because your role is {playlist.userRole}.</p>
+                            </div>
+                          )}
+                        </section>
+
+                        {isOwner ? (
+                          <PlaylistCollaborators
+                            collaborators={collaborators}
+                            draft={collaboratorDraft}
+                            onDraftChange={(nextDraft) =>
+                              setCollaboratorDrafts((current) => ({
+                                ...current,
+                                [playlist.id]: nextDraft,
+                              }))
+                            }
+                            onAdd={() => addCollaborator(playlist.id)}
+                            onRoleChange={(collaboratorId, role) =>
+                              updateCollaboratorRole(playlist.id, collaboratorId, role)
+                            }
+                            onRemove={(collaboratorId) =>
+                              removeCollaborator(playlist.id, collaboratorId)
+                            }
+                          />
+                        ) : null}
+
+                        <PlaylistComments
+                          comments={comments}
+                          draft={commentDrafts[playlist.id] || ''}
+                          currentUserId={user?.id}
+                          ownerUsername={playlist.ownerName}
+                          currentUsername={user?.username}
+                          onDraftChange={(value) =>
+                            setCommentDrafts((current) => ({
+                              ...current,
+                              [playlist.id]: value,
+                            }))
+                          }
+                          onSubmit={() => addComment(playlist.id)}
+                          onDelete={(commentId) => deleteComment(playlist.id, commentId)}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

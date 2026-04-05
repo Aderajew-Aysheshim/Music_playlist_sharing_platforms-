@@ -1,24 +1,51 @@
+import { FileText, Image as ImageIcon, Music, UploadCloud } from 'lucide-react';
 import { useState } from 'react';
-import { Upload as UploadIcon, Music, Image as ImageIcon, FileText } from 'lucide-react';
+
 import api from '../api/axios';
 
+const formatFileSize = (value) => {
+  if (!value) {
+    return 'Not selected';
+  }
+
+  if (value < 1024 * 1024) {
+    return `${Math.round(value / 1024)} KB`;
+  }
+
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const Upload = () => {
-  const [formData, setFormData] = useState({ title: '', artist: '', lyrics: '', synced_lyrics: '' });
+  const [formData, setFormData] = useState({
+    title: '',
+    artist: '',
+    lyrics: '',
+    synced_lyrics: '',
+  });
   const [audioFile, setAudioFile] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const audioSummary = audioFile
+    ? `${audioFile.name} • ${formatFileSize(audioFile.size)}`
+    : 'No audio selected yet';
+
+  const coverSummary = coverImage
+    ? `${coverImage.name} • ${formatFileSize(coverImage.size)}`
+    : 'No cover selected yet';
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!audioFile) {
-      setMessage('Audio file is required');
+      setMessage('Audio file is required.');
       return;
     }
-    
+
     setLoading(true);
     setMessage('');
-    
+
     const data = new FormData();
     data.append('title', formData.title);
     data.append('artist', formData.artist);
@@ -31,124 +58,214 @@ const Upload = () => {
 
     try {
       await api.post('songs/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setMessage('Song uploaded successfully!');
-      setFormData({ title: '', artist: '', lyrics: '', synced_lyrics: '' });
+      setMessage('Song uploaded successfully.');
+      setFormData({
+        title: '',
+        artist: '',
+        lyrics: '',
+        synced_lyrics: '',
+      });
       setAudioFile(null);
       setCoverImage(null);
-    } catch (err) {
-      setMessage(Object.values(err.response?.data || {}).flat().join(', ') || 'Upload failed');
+    } catch (error) {
+      setMessage(
+        Object.values(error.response?.data || {}).flat().join(', ')
+        || 'Upload failed.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center" style={{ minHeight: '60vh', paddingBottom: '140px' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '800px', padding: '2.5rem', borderRadius: '24px' }}>
-        <h2 className="heading text-center flex items-center justify-center gap-3 mb-8" style={{ fontSize: '2.5rem' }}>
-          <UploadIcon size={32} style={{ color: 'var(--primary)' }} />
-          Publish New Music
-        </h2>
-
-        {message && (
-          <div style={{ padding: '1.25rem', borderRadius: '12px', marginBottom: '2rem', textAlign: 'center', backgroundColor: message.includes('successfully') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: message.includes('successfully') ? '#10b981' : '#ef4444', border: message.includes('successfully') ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)' }}>
-            {message}
+    <div className="page-stack">
+      <section className="hero-card">
+        <div className="hero-copy">
+          <span className="page-tag">
+            <UploadCloud size={14} />
+            Upload flow
+          </span>
+          <h1>Publish tracks with artwork and lyric experiences.</h1>
+          <p>
+            Songs uploaded here become available for playback, playlist building,
+            public discovery, and practice-mode synced lyrics.
+          </p>
+        </div>
+        <div className="hero-grid upload-hero-grid">
+          <div className="spotlight-card accent">
+            <div className="spotlight-icon">
+              <Music size={20} />
+            </div>
+            <h2>Audio ready</h2>
+            <p>{audioSummary}</p>
           </div>
-        )}
+          <div className="spotlight-card">
+            <div className="spotlight-icon">
+              <ImageIcon size={20} />
+            </div>
+            <h2>Cover status</h2>
+            <p>{coverSummary}</p>
+          </div>
+        </div>
+      </section>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="form-group">
-              <label className="form-label">Song Title</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="e.g. Bohemian Rhapsody"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required 
-              />
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Song publishing</p>
+            <h2>Prepare a polished upload</h2>
+          </div>
+        </div>
+
+        <div className="upload-layout">
+          <form onSubmit={handleSubmit} className="upload-form">
+            <div className="upload-grid">
+              <div className="form-group">
+                <label className="form-label">Song title</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="Golden hour commute"
+                  value={formData.title}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, title: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Artist</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="Artist name"
+                  value={formData.artist}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, artist: event.target.value }))
+                  }
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Artist</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="e.g. Queen"
-                value={formData.artist}
-                onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
-                required 
-              />
-            </div>
-          </div>
+            <div className="upload-grid">
+              <div className="form-group">
+                <label className="form-label">
+                  <FileText size={16} />
+                  Full lyrics
+                </label>
+                <textarea
+                  className="form-input"
+                  placeholder="Paste the complete lyric text here."
+                  value={formData.lyrics}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, lyrics: event.target.value }))
+                  }
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div className="form-group">
-               <label className="form-label flex items-center gap-2"><FileText size={16}/> Normal Lyrics</label>
-               <textarea 
-                 className="form-input" 
-                 placeholder="Paste text normally here..."
-                 value={formData.lyrics}
-                 onChange={(e) => setFormData({ ...formData, lyrics: e.target.value })}
-                 style={{ minHeight: '180px', resize: 'vertical' }}
-               />
-             </div>
-
-             <div className="form-group">
-               <label className="form-label flex items-center gap-2" style={{ color: 'var(--secondary)' }}>
-                 <Music size={16}/> Practice Mode (Synced) 
-               </label>
-               <textarea 
-                 className="form-input" 
-                 placeholder="[00:10] First Line&#10;[00:15] Second Line..."
-                 value={formData.synced_lyrics}
-                 onChange={(e) => setFormData({ ...formData, synced_lyrics: e.target.value })}
-                 style={{ minHeight: '180px', resize: 'vertical', border: '1px solid rgba(236,72,153,0.3)' }}
-               />
-               <div style={{ backgroundColor: 'rgba(236,72,153,0.05)', padding: '1rem', borderRadius: '12px', marginTop: '1rem', border: '1px dashed rgba(236,72,153,0.2)' }}>
-                 <p style={{ fontSize: '0.8rem', color: 'var(--secondary)', marginBottom: '0.5rem', fontWeight: 600 }}>Format Guide:</p>
-                 <code style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', lineHeight: '1.6' }}>
-                   [00:12] Hello world!<br/>
-                   [00:15] This is the second line<br/>
-                   [00:20.50] Use decimals for precision!
-                 </code>
-               </div>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="form-group">
-              <label className="form-label flex items-center gap-2"><Music size={16}/> Audio File</label>
-              <input 
-                type="file" 
-                accept="audio/*"
-                className="form-input" 
-                onChange={(e) => setAudioFile(e.target.files[0])}
-                style={{ padding: '0.4rem' }}
-                required 
-              />
+              <div className="form-group">
+                <label className="form-label accent">
+                  <Music size={16} />
+                  Synced lyrics
+                </label>
+                <textarea
+                  className="form-input accented"
+                  placeholder="[00:10] First line&#10;[00:15] Second line"
+                  value={formData.synced_lyrics}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, synced_lyrics: event.target.value }))
+                  }
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label flex items-center gap-2"><ImageIcon size={16}/> Cover (Optional)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                className="form-input" 
-                onChange={(e) => setCoverImage(e.target.files[0])}
-                style={{ padding: '0.4rem' }}
-              />
-            </div>
-          </div>
+            <div className="upload-grid">
+              <div className="form-group">
+                <label className="form-label">
+                  <Music size={16} />
+                  Audio file
+                </label>
+                <input
+                  className="form-input file-input"
+                  type="file"
+                  accept="audio/*"
+                  onChange={(event) => setAudioFile(event.target.files?.[0] || null)}
+                  required
+                />
+              </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ padding: '1.25rem', fontSize: '1.1rem', marginTop: '1rem', opacity: loading ? 0.7 : 1 }}>
-            {loading ? 'Uploading Magic...' : 'Publish Song'}
-          </button>
-        </form>
-      </div>
+              <div className="form-group">
+                <label className="form-label">
+                  <ImageIcon size={16} />
+                  Cover image
+                </label>
+                <input
+                  className="form-input file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setCoverImage(event.target.files?.[0] || null)}
+                />
+              </div>
+            </div>
+
+            <button className="btn-primary" type="submit" disabled={loading}>
+              <UploadCloud size={16} />
+              {loading ? 'Uploading...' : 'Publish song'}
+            </button>
+
+            {message ? <p className="feedback-text">{message}</p> : null}
+          </form>
+
+          <div className="upload-sidebar">
+            <aside className="detail-panel">
+              <div className="detail-panel-header">
+                <div>
+                  <p className="section-kicker">Upload checklist</p>
+                  <h4>Before you publish</h4>
+                </div>
+              </div>
+              <div className="info-stack">
+                <p>Use a clean title and artist name so playlist search stays useful.</p>
+                <p>Attach cover art if you want your tracks to feel complete inside cards and player views.</p>
+                <p>Synced lyrics should follow the format <code>[mm:ss]</code> or <code>[mm:ss.xx]</code>.</p>
+                <p>Uploaded songs immediately become available in playlist add-song menus.</p>
+              </div>
+            </aside>
+
+            <aside className="detail-panel upload-stage">
+              <div className="detail-panel-header">
+                <div>
+                  <p className="section-kicker">Publishing stage</p>
+                  <h4>What goes live</h4>
+                </div>
+              </div>
+
+              <div className="upload-file-card">
+                <strong>Track file</strong>
+                <span>{audioSummary}</span>
+              </div>
+              <div className="upload-file-card">
+                <strong>Cover art</strong>
+                <span>{coverSummary}</span>
+              </div>
+              <div className="upload-file-card">
+                <strong>Lyrics mode</strong>
+                <span>
+                  {formData.synced_lyrics.trim()
+                    ? 'Full lyrics + practice mode'
+                    : formData.lyrics.trim()
+                      ? 'Full lyrics only'
+                      : 'No lyrics attached yet'}
+                </span>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

@@ -1,8 +1,14 @@
 # Team ignores
 node_modules/
 .env
+__pycache__/
+*.pyc
 
 # Your local ignores
 dist/
+.vite/
 .vscode/
 *.log
+client/dist/
+Backend/db.sqlite3
+Backend/media/

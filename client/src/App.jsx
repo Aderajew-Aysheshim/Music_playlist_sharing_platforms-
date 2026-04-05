@@ -1,33 +1,56 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Playlists from './pages/Playlists';
-import Upload from './pages/Upload';
-import Browse from './pages/Browse';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+
 import Footer from './components/Footer';
 import MusicPlayer from './components/MusicPlayer';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import { usePlayer } from './context/PlayerContext';
+import Browse from './pages/Browse';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Playlists from './pages/Playlists';
+import Register from './pages/Register';
+import SharedPlaylist from './pages/SharedPlaylist';
+import Upload from './pages/Upload';
+import { hasStoredAccessToken } from './utils/session';
 
 function AppContent() {
-  const isAuthenticated = !!localStorage.getItem('accessToken');
+  const isAuthenticated = hasStoredAccessToken();
   const { currentSong } = usePlayer();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: currentSong ? '90px' : '0px' }}>
-      <Navbar />
-      <div className="container mt-8" style={{ flex: 1 }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/browse" element={<Browse />} />
-          <Route path="/playlists" element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />} />
-          <Route path="/upload" element={isAuthenticated ? <Upload /> : <Navigate to="/login" />} />
-          <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-        </Routes>
+    <div
+      className="app-shell"
+      style={{ paddingBottom: currentSong ? '118px' : '0px' }}
+    >
+      <Sidebar />
+      <div className="app-main">
+        <Navbar />
+        <main className="app-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/browse" element={<Browse />} />
+            <Route
+              path="/playlists"
+              element={isAuthenticated ? <Playlists /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/upload"
+              element={isAuthenticated ? <Upload /> : <Navigate to="/login" />}
+            />
+            <Route path="/shared/:token" element={<SharedPlaylist />} />
+            <Route
+              path="/login"
+              element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/register"
+              element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
+            />
+          </Routes>
+        </main>
+        <Footer />
       </div>
-      <Footer />
       <MusicPlayer />
     </div>
   );

@@ -1,112 +1,115 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Music, LogOut, User, Upload as UploadIcon, ListMusic, Search } from 'lucide-react';
+import {
+  LogOut,
+  Search,
+  Sparkles,
+  UserRound,
+} from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+
 import api from '../api/axios';
+import { getStoredUser, hasStoredAccessToken } from '../utils/session';
+
+const pageMeta = {
+  '/': {
+    title: 'Home',
+    subtitle: 'Fresh uploads, playlist highlights, and fast entry points into the app.',
+  },
+  '/browse': {
+    title: 'Browse',
+    subtitle: 'Public playlists from the community, now with comments and likes.',
+  },
+  '/playlists': {
+    title: 'Library',
+    subtitle: 'Manage your playlists, collaborators, visibility, comments, and share links.',
+  },
+  '/upload': {
+    title: 'Upload',
+    subtitle: 'Publish songs with artwork and synced lyrics for playback mode.',
+  },
+};
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const token = localStorage.getItem('accessToken');
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const token = hasStoredAccessToken();
+  const user = getStoredUser();
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/browse?search=${searchQuery}`);
-    }
+  const pageDetails = useMemo(
+    () => pageMeta[location.pathname] || {
+      title: 'MusiConnect',
+      subtitle: 'Playlist sharing, collaboration, and music discovery in one place.',
+    },
+    [location.pathname],
+  );
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/browse?search=${encodeURIComponent(query)}` : '/browse');
   };
 
   const handleLogout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
-      await api.post('logout/', { refresh: refreshToken });
-    } catch (err) {
-      console.error('Logout error:', err);
+      if (refreshToken) {
+        await api.post('logout/', { refresh: refreshToken });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
     }
+
     localStorage.clear();
     navigate('/login');
     window.location.reload();
   };
 
   return (
-    <nav className="glass-panel" style={{ padding: '0.75rem 1.5rem', margin: '1rem', borderRadius: '1rem' }}>
-      <div className="container flex justify-between items-center gap-8">
-        
-        {/* Logo Section */}
-        <Link to="/" className="flex items-center gap-3" style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.25rem', flexShrink: 0 }}>
-          <Music size={28} />
-          <span className="hidden sm:inline">MusiConnect</span>
-        </Link>
+    <header className="topbar">
+      <div>
+        <p className="section-kicker">{pageDetails.title}</p>
+        <h1 className="topbar-title">{pageDetails.title}</h1>
+        <p className="topbar-subtitle">{pageDetails.subtitle}</p>
+      </div>
 
-        {/* Professional Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:block">
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search 
-              size={18} 
-              style={{ 
-                position: 'absolute', 
-                left: '12px', 
-                color: 'var(--text-muted)',
-                pointerEvents: 'none' 
-              }} 
-            />
-            <input
-              type="text"
-              placeholder="Search for vibes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.6rem 1rem 0.6rem 2.5rem',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--border)',
-                borderRadius: '2rem',
-                color: 'white',
-                outline: 'none',
-                fontSize: '0.9rem',
-                transition: 'all 0.2s ease'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
-            />
-          </div>
+      <div className="topbar-actions">
+        <form onSubmit={handleSearch} className="topbar-search">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search public playlists"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
         </form>
 
-        {/* Navigation Links */}
-        <div className="flex items-center gap-6 flex-shrink-0">
-          <Link to="/browse" className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            <ListMusic size={18} />
-            Browse
-          </Link>
-
-          {token ? (
-            <>
-              <Link to="/upload" className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                <UploadIcon size={18} />
-                Upload
-              </Link>
-              <Link to="/playlists" className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                <Music size={18} />
-                Playlists
-              </Link>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                <User size={16} />
-                {user?.username}
+        {token && user ? (
+          <>
+            <div className="user-badge">
+              <UserRound size={16} />
+              <div>
+                <strong>{user.username}</strong>
+                <span>{user.email || 'Signed in'}</span>
               </div>
-              <button onClick={handleLogout} className="flex items-center gap-2 btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-                <LogOut size={14} /> Logout
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Link to="/login" className="btn-secondary" style={{ padding: '0.5rem 1.25rem' }}>Login</Link>
-              <Link to="/register" className="btn-primary" style={{ padding: '0.5rem 1.25rem' }}>Register</Link>
             </div>
-          )}
-        </div>
+            <button className="btn-secondary compact" onClick={handleLogout}>
+              <LogOut size={16} />
+              Logout
+            </button>
+          </>
+        ) : (
+          <div className="auth-strip">
+            <div className="auth-message">
+              <Sparkles size={16} />
+              <span>Sign in to manage playlists, comments, and collaboration.</span>
+            </div>
+            <Link to="/login" className="btn-secondary compact">Login</Link>
+            <Link to="/register" className="btn-primary compact">Register</Link>
+          </div>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }
 

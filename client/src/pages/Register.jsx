@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import api from '../api/axios';
 
 const Register = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState(null);
 
@@ -59,7 +58,7 @@ const Register = () => {
             <input 
               type="password" 
               className="form-input" 
-              placeholder="••••••••"
+              placeholder="********"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required 
