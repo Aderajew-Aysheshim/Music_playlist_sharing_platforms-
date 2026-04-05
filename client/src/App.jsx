@@ -1,3 +1,5 @@
+import PlaylistDetail from './pages/PlaylistDetail';
+import SearchResults from './pages/SearchResults';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -54,10 +56,9 @@ function AppContent() {
               path="/login"
               element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
             />
-            <Route
-              path="/register"
-              element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
-            />
+           
+            
+            <Route path="/search" element={<SearchResults />} />
           </Routes>
         </main>
         <Footer />
