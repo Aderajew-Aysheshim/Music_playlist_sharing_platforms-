@@ -1,199 +1,259 @@
-import { useState, useEffect } from 'react';
-import { Play, Download, Plus, Disc3, Music, FileText } from 'lucide-react';
+import {
+  Compass,
+  Disc3,
+  Download,
+  FileText,
+  Music,
+  Play,
+  Plus,
+  Share2,
+  UploadCloud,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+
 import api from '../api/axios';
+import { normalizePlaylists, normalizeSongs } from '../api/adapters';
 import { usePlayer } from '../context/PlayerContext';
 
 const Home = () => {
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [publicPlaylists, setPublicPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedLyrics, setExpandedLyrics] = useState(null); // track song ID for lyrics
+  const [expandedLyrics, setExpandedLyrics] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const { playSong, currentSong, isPlaying } = usePlayer();
   const token = localStorage.getItem('accessToken');
 
   useEffect(() => {
-    fetchSongs();
-    if (token) fetchPlaylists();
+    const fetchHomeData = async () => {
+      setLoading(true);
+
+      try {
+        const requests = [
+          api.get('songs/'),
+          api.get('browse/'),
+        ];
+
+        if (token) {
+          requests.push(api.get('playlists/'));
+        }
+
+        const [songsResponse, publicPlaylistsResponse, playlistsResponse] = await Promise.all(requests);
+        setSongs(normalizeSongs(songsResponse.data));
+        setPublicPlaylists(normalizePlaylists(publicPlaylistsResponse.data));
+        setPlaylists(playlistsResponse ? normalizePlaylists(playlistsResponse.data) : []);
+      } catch (error) {
+        console.error(error);
+        setSongs([]);
+        setPlaylists([]);
+        setPublicPlaylists([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
   }, [token]);
 
-  const fetchSongs = async () => {
-    try {
-      const { data } = await api.get('songs/');
-      setSongs(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPlaylists = async () => {
-    try {
-      const { data } = await api.get('playlists/');
-      setPlaylists(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handlePlay = (song) => {
-    playSong(song, songs);
-  };
+  const latestSongs = useMemo(() => songs.slice(0, 8), [songs]);
+  const featuredPlaylists = useMemo(() => publicPlaylists.slice(0, 4), [publicPlaylists]);
 
   const addToPlaylist = async (songId, playlistId) => {
     try {
       await api.post(`playlists/${playlistId}/add_song/`, { song_id: songId });
-      alert('Song added to playlist!');
-      fetchPlaylists();
-    } catch (err) {
-      console.error(err);
+      setOpenDropdown(null);
+      window.alert('Song added to playlist.');
+    } catch (error) {
+      console.error(error);
+      window.alert('Unable to add this song to the selected playlist.');
     }
   };
 
-  const toggleLyrics = (songId) => {
-    setExpandedLyrics(expandedLyrics === songId ? null : songId);
-  };
-
   return (
-    <div>
-      <header className="mb-8 p-8 glass-panel text-center">
-        <h1 className="heading" style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>Discover Endless Vibes</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>Stream, download, and build the ultimate playlist.</p>
-      </header>
+    <div className="page-stack">
+      <section className="hero-card">
+        <div className="hero-copy">
+          <span className="page-tag">
+            <Disc3 size={14} />
+            Shared library
+          </span>
+          <h1>Build collaborative playlists with a player-first experience.</h1>
+          <p>
+            MusiConnect now supports public discovery, share links, collaborators,
+            comments, likes, and synced lyrics in a cleaner app shell.
+          </p>
+          <div className="metric-row">
+            <span className="metric-pill">{songs.length} uploaded tracks</span>
+            <span className="metric-pill">{publicPlaylists.length} public playlists</span>
+            <span className="metric-pill">{playlists.length} playlists in your library</span>
+          </div>
+        </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center p-8">
-          <Disc3 className="animate-spin" size={48} style={{ color: 'var(--primary)' }} />
+        <div className="hero-grid">
+          <div className="spotlight-card accent">
+            <div className="spotlight-icon">
+              <Share2 size={20} />
+            </div>
+            <h2>Share instantly</h2>
+            <p>Create playlists, toggle them public or private, and copy share links for listeners.</p>
+          </div>
+          <div className="spotlight-card">
+            <div className="spotlight-icon">
+              <Compass size={20} />
+            </div>
+            <h2>Discover the community</h2>
+            <p>Browse public playlists and jump straight into playback from any track row.</p>
+          </div>
+          <div className="spotlight-card">
+            <div className="spotlight-icon">
+              <UploadCloud size={20} />
+            </div>
+            <h2>Upload with lyrics</h2>
+            <p>Publish tracks with artwork, full lyrics, and practice mode synced lyric timing.</p>
+          </div>
         </div>
-      ) : songs.length === 0 ? (
-        <div className="glass-panel p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-          No songs uploaded yet. <a href="/upload" style={{ color: 'var(--primary)' }}>Upload the first one!</a>
+      </section>
+
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Latest tracks</p>
+            <h2>Recently added songs</h2>
+          </div>
+          <Link to="/upload" className="btn-secondary compact">
+            <UploadCloud size={16} />
+            Upload a song
+          </Link>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {songs.map(song => {
-            const isActive = currentSong?.id === song.id;
-            return (
-              <div
-                key={song.id}
-                className="glass-panel p-4 flex flex-col justify-between"
-                style={{
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                  border: isActive ? '1px solid rgba(139,92,246,0.7)' : undefined,
-                  boxShadow: isActive ? '0 0 20px rgba(139,92,246,0.25)' : undefined,
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <div className="flex gap-4 items-center mb-4">
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    flexShrink: 0,
-                    backgroundColor: 'var(--surface-hover)',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                  }}>
-                    {song.cover_image ? (
-                      <img src={song.cover_image} alt={song.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+        {loading ? (
+          <div className="empty-state">Loading your music feed...</div>
+        ) : latestSongs.length === 0 ? (
+          <div className="empty-state">No songs uploaded yet.</div>
+        ) : (
+          <div className="song-card-grid">
+            {latestSongs.map((song) => {
+              const isActive = currentSong?.id === song.id;
+
+              return (
+                <article key={song.id} className="song-card">
+                  <div className="song-card-media">
+                    {song.coverImageUrl ? (
+                      <img src={song.coverImageUrl} alt={song.title} />
                     ) : (
-                      <Music size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                      <Music size={30} />
                     )}
-                    {isActive && isPlaying && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        background: 'rgba(139,92,246,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
+                    {isActive && isPlaying ? (
+                      <div className="song-card-overlay">
                         <div className="now-playing-bars">
                           <span /><span /><span />
                         </div>
                       </div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{
-                      fontSize: '1.1rem', fontWeight: 600, color: isActive ? 'var(--primary)' : '#fff',
-                      marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>{song.title}</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{song.artist}</p>
-                  </div>
-                </div>
-
-                {song.lyrics && expandedLyrics === song.id && (
-                  <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.05)', fontSize: '0.85rem', color: 'var(--text-muted)', maxHeight: '150px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
-                    {song.lyrics}
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex gap-2">
-                    <button
-                      id={`play-song-${song.id}`}
-                      onClick={() => handlePlay(song)}
-                      className="btn-primary"
-                      style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Play size={20} />
-                    </button>
-
-                    {song.lyrics && (
-                       <button
-                         onClick={() => toggleLyrics(song.id)}
-                         className="btn-secondary"
-                         title={expandedLyrics === song.id ? "Hide Lyrics" : "Show Lyrics"}
-                         style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: expandedLyrics === song.id ? 'var(--primary)' : 'inherit', border: expandedLyrics === song.id ? '1px solid var(--primary)' : '1px solid var(--border)' }}
-                       >
-                         <FileText size={18} />
-                       </button>
-                    )}
+                    ) : null}
                   </div>
 
-                  <div className="flex gap-2">
-                    <a
-                      href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`}
-                      download
-                      className="btn-secondary"
-                      style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Download size={18} />
-                    </a>
+                  <div className="song-card-body">
+                    <div>
+                      <h3>{song.title}</h3>
+                      <p>{song.artist}</p>
+                    </div>
 
-                    {token && (
-                      <div style={{ position: 'relative' }} className="playlist-dropdown">
+                    {song.lyrics && expandedLyrics === song.id ? (
+                      <div className="lyrics-preview">{song.lyrics}</div>
+                    ) : null}
+
+                    <div className="song-card-actions">
+                      <button
+                        className="btn-primary compact"
+                        onClick={() => playSong(song, songs)}
+                      >
+                        <Play size={16} />
+                        Play
+                      </button>
+
+                      <a className="icon-button" href={song.playbackUrl} download>
+                        <Download size={16} />
+                      </a>
+
+                      {song.lyrics ? (
                         <button
-                          className="btn-secondary"
-                          style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          onClick={(e) => {
-                            const dropdown = e.currentTarget.nextElementSibling;
-                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-                          }}
+                          className="icon-button"
+                          onClick={() => setExpandedLyrics(expandedLyrics === song.id ? null : song.id)}
                         >
-                          <Plus size={18} />
+                          <FileText size={16} />
                         </button>
-                        <div className="glass-panel" style={{ display: 'none', position: 'absolute', right: 0, bottom: '120%', minWidth: '150px', zIndex: 10, padding: '0.5rem' }}>
-                          {playlists.length > 0 ? playlists.map(pl => (
-                            <div key={pl.id} className="p-2 hover:bg-white/10 rounded cursor-pointer text-sm" onClick={() => addToPlaylist(song.id, pl.id)}>
-                              {pl.name}
+                      ) : null}
+
+                      {token ? (
+                        <div className="dropdown-shell">
+                          <button
+                            className="icon-button"
+                            onClick={() => setOpenDropdown(openDropdown === song.id ? null : song.id)}
+                          >
+                            <Plus size={16} />
+                          </button>
+                          {openDropdown === song.id ? (
+                            <div className="dropdown-panel">
+                              {playlists.length ? playlists.map((playlist) => (
+                                <button
+                                  key={playlist.id}
+                                  className="dropdown-item"
+                                  onClick={() => addToPlaylist(song.id, playlist.id)}
+                                >
+                                  {playlist.name}
+                                </button>
+                              )) : (
+                                <span className="dropdown-empty">Create a playlist first.</span>
+                              )}
                             </div>
-                          )) : (
-                            <div className="p-2 text-sm text-gray-400">No playlists</div>
-                          )}
+                          ) : null}
                         </div>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Public discovery</p>
+            <h2>Featured community playlists</h2>
+          </div>
+          <Link to="/browse" className="btn-secondary compact">
+            <Compass size={16} />
+            Browse all
+          </Link>
         </div>
-      )}
+
+        {featuredPlaylists.length === 0 ? (
+          <div className="empty-state">No public playlists are available yet.</div>
+        ) : (
+          <div className="feature-grid">
+            {featuredPlaylists.map((playlist) => (
+              <article key={playlist.id} className="feature-card">
+                <div className="feature-card-header">
+                  <span className="page-tag subtle">{playlist.isPublic ? 'Public' : 'Private'}</span>
+                  <span className="metric-pill">{playlist.songCount} songs</span>
+                </div>
+                <h3>{playlist.name}</h3>
+                <p>{playlist.description || 'Curated for quick playback and easy sharing.'}</p>
+                <div className="feature-card-footer">
+                  <span>{playlist.ownerName || 'Community playlist'}</span>
+                  <span>{playlist.likesCount} likes</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

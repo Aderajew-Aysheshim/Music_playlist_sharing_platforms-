@@ -73,6 +73,12 @@ export const PlayerProvider = ({ children }) => {
   const toggleRepeat = () => setRepeat(r => r === 'none' ? 'all' : r === 'all' ? 'one' : 'none');
 
   const closePlayer = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
+    }
     setQueue([]);
     setCurrentIndex(0);
     setIsPlaying(false);

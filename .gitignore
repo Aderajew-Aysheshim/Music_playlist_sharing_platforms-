@@ -1,26 +1,14 @@
-# Python
-__pycache__/
-*.py[cod]
-*.sqlite3
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Environment files
+# Team ignores
+node_modules/
 .env
-*.env
+__pycache__/
+*.pyc
 
-# Django media/static
-Backend/media/
-Backend/staticfiles/
-
-# Node
-client/node_modules/
-client/dist/
-
-# OS/editor
-.DS_Store
-Thumbs.db
+# Your local ignores
+dist/
+.vite/
 .vscode/
+*.log
+client/dist/
+Backend/db.sqlite3
+Backend/media/

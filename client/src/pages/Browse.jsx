@@ -1,121 +1,282 @@
-import { useState, useEffect } from 'react';
-import { Music, Play, Download, User, ListMusic, Pause } from 'lucide-react';
+import {
+  Compass,
+  Download,
+  Heart,
+  ListMusic,
+  Music,
+  Pause,
+  Play,
+  User,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import api from '../api/axios';
+import { getResults, normalizePlaylists } from '../api/adapters';
+import PlaylistComments from '../components/PlaylistComments';
 import { usePlayer } from '../context/PlayerContext';
+import { getStoredUser, hasStoredAccessToken } from '../utils/session';
 
 const Browse = () => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  
+  const [commentsByPlaylist, setCommentsByPlaylist] = useState({});
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search')?.trim() || '';
+
   const { playSong, currentSong, isPlaying } = usePlayer();
+  const user = getStoredUser();
+  const isAuthenticated = hasStoredAccessToken();
 
   useEffect(() => {
     fetchPublicPlaylists();
-  }, []);
+  }, [searchQuery]);
+
+  const refreshPublicPlaylist = async (playlistId) => {
+    try {
+      const { data } = await api.get(`browse/${playlistId}/`);
+      const normalized = normalizePlaylists([data])[0];
+      setPlaylists((current) =>
+        current.map((playlist) => (playlist.id === playlistId ? normalized : playlist)),
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const fetchPublicPlaylists = async () => {
+    setLoading(true);
+
     try {
-      const { data } = await api.get('browse/');
-      setPlaylists(data);
-    } catch (err) {
-      console.error(err);
+      const { data } = await api.get('browse/', {
+        params: searchQuery ? { search: searchQuery } : undefined,
+      });
+      setPlaylists(normalizePlaylists(data));
+    } catch (error) {
+      console.error(error);
+      setPlaylists([]);
     } finally {
+      setExpandedId(null);
       setLoading(false);
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
+  const fetchComments = async (playlistId) => {
+    try {
+      const { data } = await api.get(`playlists/${playlistId}/comments/`);
+      setCommentsByPlaylist((current) => ({
+        ...current,
+        [playlistId]: getResults(data),
+      }));
+    } catch (error) {
+      console.error(error);
+      setCommentsByPlaylist((current) => ({
+        ...current,
+        [playlistId]: [],
+      }));
+    }
   };
 
-  const handlePlaySong = (song, playlistSongs) => {
-    playSong(song, playlistSongs);
+  const toggleExpand = async (playlistId) => {
+    const nextExpanded = expandedId === playlistId ? null : playlistId;
+    setExpandedId(nextExpanded);
+
+    if (nextExpanded) {
+      await fetchComments(playlistId);
+    }
+  };
+
+  const toggleLike = async (playlist) => {
+    if (!isAuthenticated) {
+      window.alert('Sign in to like playlists.');
+      return;
+    }
+
+    try {
+      const { data } = playlist.isLiked
+        ? await api.delete(`playlists/${playlist.id}/like/`)
+        : await api.post(`playlists/${playlist.id}/like/`);
+
+      setPlaylists((current) =>
+        current.map((item) =>
+          item.id === playlist.id
+            ? { ...item, isLiked: data.liked, likesCount: data.likes_count }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const addComment = async (playlistId) => {
+    const content = (commentDrafts[playlistId] || '').trim();
+    if (!content) {
+      return;
+    }
+
+    try {
+      await api.post(`playlists/${playlistId}/comments/`, { content });
+      setCommentDrafts((current) => ({ ...current, [playlistId]: '' }));
+      await fetchComments(playlistId);
+      await refreshPublicPlaylist(playlistId);
+    } catch (error) {
+      console.error(error);
+      window.alert('You need to be signed in to comment.');
+    }
+  };
+
+  const deleteComment = async (playlistId, commentId) => {
+    try {
+      await api.delete(`playlists/${playlistId}/comments/${commentId}/`);
+      await fetchComments(playlistId);
+      await refreshPublicPlaylist(playlistId);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
-    <div style={{ paddingBottom: '20px' }}>
-      <header className="mb-8 p-8 glass-panel text-center">
-        <h1 className="heading" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>Browse Playlists</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Explore playlists created by the MusiConnect community</p>
-      </header>
-
-      {loading ? (
-        <div className="flex justify-center items-center p-8">
-          <div style={{ color: 'var(--text-muted)' }}>Loading playlists...</div>
+    <div className="page-stack">
+      <section className="hero-card">
+        <div className="hero-copy">
+          <span className="page-tag">
+            <Compass size={14} />
+            Public discovery
+          </span>
+          <h1>Explore public playlists created by the community.</h1>
+          <p>
+            Search public collections, preview tracks, like what stands out, and
+            join the discussion when you are signed in.
+          </p>
         </div>
-      ) : playlists.length === 0 ? (
-        <div className="glass-panel p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-          No playlists have been created yet. Be the first!
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {playlists.map(playlist => (
-            <div key={playlist.id} className="glass-panel" style={{ overflow: 'hidden', transition: 'transform 0.2s', border: expandedId === playlist.id ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--border)' }}>
-              <div 
-                className="flex justify-between items-center p-6" 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => toggleExpand(playlist.id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ListMusic size={24} color="white" />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'white' }}>{playlist.name}</h3>
-                    <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      <User size={14} /> {playlist.owner_name} &bull; {playlist.songs.length} song{playlist.songs.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ color: 'var(--text-muted)', transform: expandedId === playlist.id ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s' }}>
-                  ▼
-                </div>
-              </div>
+      </section>
 
-              {expandedId === playlist.id && (
-                <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 1.5rem 1.5rem' }}>
-                  {playlist.songs.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)', padding: '1rem 0', fontSize: '0.875rem' }}>This playlist has no songs yet.</p>
-                  ) : (
-                    playlist.songs.map((song, i) => {
-                      const isActive = currentSong?.id === song.id;
-                      return (
-                        <div key={song.id} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: isActive ? 'rgba(139, 92, 246, 0.1)' : i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                          <div className="flex items-center gap-4">
-                            <span style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)', width: '24px', textAlign: 'center', fontSize: '0.85rem' }}>
-                              {isActive && isPlaying ? (
-                                <div className="now-playing-bars mini">
-                                  <span /><span /><span />
-                                </div>
-                              ) : i + 1}
-                            </span>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '6px', overflow: 'hidden', backgroundColor: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              {song.cover_image ? <img src={song.cover_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={16} style={{ color: 'var(--text-muted)' }} />}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 500, color: isActive ? 'var(--primary)' : 'white' }}>{song.title}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{song.artist}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => handlePlaySong(song, playlist.songs)} className={isActive ? "btn-primary" : "btn-secondary"} style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {isActive && isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                            </button>
-                            <a href={`http://127.0.0.1:8000/api/songs/${song.id}/stream/`} download className="btn-secondary" style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Download size={14} />
-                            </a>
+      <section className="section-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Community playlists</p>
+            <h2>{searchQuery ? `Results for "${searchQuery}"` : 'Open playlists'}</h2>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="empty-state">Loading public playlists...</div>
+        ) : playlists.length === 0 ? (
+          <div className="empty-state">
+            {searchQuery ? 'No public playlists matched your search.' : 'No playlists are public yet.'}
+          </div>
+        ) : (
+          <div className="playlist-stack">
+            {playlists.map((playlist) => {
+              const comments = commentsByPlaylist[playlist.id] || [];
+              const isExpanded = expandedId === playlist.id;
+
+              return (
+                <article key={playlist.id} className="playlist-card">
+                  <div className="playlist-card-header">
+                    <button className="playlist-summary" onClick={() => toggleExpand(playlist.id)}>
+                      <div className="playlist-summary-art">
+                        <ListMusic size={18} />
+                      </div>
+                      <div className="playlist-summary-copy">
+                        <h3>{playlist.name}</h3>
+                        <p>{playlist.description || 'A public playlist ready for listening.'}</p>
+                        <div className="chip-row">
+                          <span className="metric-pill">{playlist.songCount} songs</span>
+                          <span className="metric-pill">{playlist.likesCount} likes</span>
+                          <span className="metric-pill">{playlist.commentsCount} comments</span>
+                          <span className="metric-pill">
+                            <User size={12} />
+                            {playlist.ownerName || 'Community'}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      className={playlist.isLiked ? 'icon-button accent' : 'icon-button'}
+                      onClick={() => toggleLike(playlist)}
+                    >
+                      <Heart size={16} />
+                    </button>
+                  </div>
+
+                  {isExpanded ? (
+                    <div className="playlist-detail-grid public">
+                      <section className="detail-panel">
+                        <div className="detail-panel-header">
+                          <div>
+                            <p className="section-kicker">Tracks</p>
+                            <h4>Playable queue</h4>
                           </div>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+
+                        <div className="playlist-song-list">
+                          {playlist.songs.length ? playlist.songs.map((song, index) => {
+                            const isActive = currentSong?.id === song.id;
+
+                            return (
+                              <article key={song.id} className="song-row">
+                                <div className="song-row-main">
+                                  <span className="song-row-index">{song.order || index + 1}</span>
+                                  <div className="song-art">
+                                    {song.coverImageUrl ? (
+                                      <img src={song.coverImageUrl} alt={song.title} />
+                                    ) : (
+                                      <Music size={18} />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h3 className={isActive ? 'is-active' : ''}>{song.title}</h3>
+                                    <p>{song.artist}</p>
+                                  </div>
+                                </div>
+
+                                <div className="song-row-actions">
+                                  <button
+                                    className={isActive ? 'icon-button accent' : 'icon-button'}
+                                    onClick={() => playSong(song, playlist.songs)}
+                                  >
+                                    {isActive && isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                                  </button>
+                                  <a className="icon-button" href={song.playbackUrl} download>
+                                    <Download size={16} />
+                                  </a>
+                                </div>
+                              </article>
+                            );
+                          }) : (
+                            <div className="empty-inline">This playlist has no songs yet.</div>
+                          )}
+                        </div>
+                      </section>
+
+                      <PlaylistComments
+                        comments={comments}
+                        draft={commentDrafts[playlist.id] || ''}
+                        currentUserId={user?.id}
+                        ownerUsername={playlist.ownerName}
+                        currentUsername={user?.username}
+                        onDraftChange={(value) =>
+                          setCommentDrafts((current) => ({
+                            ...current,
+                            [playlist.id]: value,
+                          }))
+                        }
+                        onSubmit={() => addComment(playlist.id)}
+                        onDelete={(commentId) => deleteComment(playlist.id, commentId)}
+                      />
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

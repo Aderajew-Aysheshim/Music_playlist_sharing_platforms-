@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Music } from 'lucide-react';
 import api from '../api/axios';
 
 const Login = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState(null);
 
@@ -48,7 +47,7 @@ const Login = () => {
             <input 
               type="password" 
               className="form-input" 
-              placeholder="••••••••"
+              placeholder="********"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required 
