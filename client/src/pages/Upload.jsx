@@ -39,7 +39,12 @@ const Upload = () => {
     event.preventDefault();
 
     if (!audioFile) {
-      setMessage('Audio file is required.');
+      setMessage('Please select an audio file.');
+      return;
+    }
+
+    if (!formData.title.trim() || !formData.artist.trim()) {
+      setMessage('Title and artist are required.');
       return;
     }
 
@@ -47,33 +52,51 @@ const Upload = () => {
     setMessage('');
 
     const data = new FormData();
-    data.append('title', formData.title);
-    data.append('artist', formData.artist);
-    data.append('lyrics', formData.lyrics);
-    data.append('synced_lyrics', formData.synced_lyrics);
+    data.append('title', formData.title.trim());
+    data.append('artist', formData.artist.trim());
+    data.append('lyrics', formData.lyrics.trim());
+    data.append('synced_lyrics', formData.synced_lyrics.trim());
     data.append('audio_file', audioFile);
     if (coverImage) {
       data.append('cover_image', coverImage);
     }
 
     try {
-      await api.post('songs/', data, {
+      const response = await api.post('songs/', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setMessage('Song uploaded successfully.');
-      setFormData({
-        title: '',
-        artist: '',
-        lyrics: '',
-        synced_lyrics: '',
-      });
-      setAudioFile(null);
-      setCoverImage(null);
+
+      if (response.data) {
+        setMessage('Song uploaded successfully!');
+        setFormData({
+          title: '',
+          artist: '',
+          lyrics: '',
+          synced_lyrics: '',
+        });
+        setAudioFile(null);
+        setCoverImage(null);
+
+        // Clear file inputs
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => input.value = '');
+      }
     } catch (error) {
-      setMessage(
-        Object.values(error.response?.data || {}).flat().join(', ')
-        || 'Upload failed.',
-      );
+      console.error('Upload error:', error);
+
+      if (error.response?.data) {
+        const errors = Object.entries(error.response.data)
+          .map(([field, messages]) => {
+            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const errorList = Array.isArray(messages) ? messages.join(', ') : messages;
+            return `${fieldName}: ${errorList}`;
+          });
+        setMessage(errors.join('; '));
+      } else if (error.message) {
+        setMessage(`Upload failed: ${error.message}`);
+      } else {
+        setMessage('Upload failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -83,39 +106,17 @@ const Upload = () => {
     <div className="page-stack">
       <section className="hero-card">
         <div className="hero-copy">
-          <span className="page-tag">
-            <UploadCloud size={14} />
-            Upload flow
-          </span>
-          <h1>Publish tracks with artwork and lyric experiences.</h1>
-          <p>
-            Songs uploaded here become available for playback, playlist building,
-            public discovery, and practice-mode synced lyrics.
-          </p>
-        </div>
-        <div className="hero-grid upload-hero-grid">
-          <div className="spotlight-card accent">
-            <div className="spotlight-icon">
-              <Music size={20} />
-            </div>
-            <h2>Audio ready</h2>
-            <p>{audioSummary}</p>
-          </div>
-          <div className="spotlight-card">
-            <div className="spotlight-icon">
-              <ImageIcon size={20} />
-            </div>
-            <h2>Cover status</h2>
-            <p>{coverSummary}</p>
-          </div>
+          <span className="page-tag">Upload</span>
+          <h1>Upload Music</h1>
+          <p>Share your songs</p>
         </div>
       </section>
 
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="section-kicker">Song publishing</p>
-            <h2>Prepare a polished upload</h2>
+            <p className="section-kicker">Upload</p>
+            <h2>Add Song</h2>
           </div>
         </div>
 
@@ -127,7 +128,7 @@ const Upload = () => {
                 <input
                   className="form-input"
                   type="text"
-                  placeholder="Golden hour commute"
+                  placeholder="Song title"
                   value={formData.title}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, title: event.target.value }))
@@ -159,7 +160,7 @@ const Upload = () => {
                 </label>
                 <textarea
                   className="form-input"
-                  placeholder="Paste the complete lyric text here."
+                  placeholder="Lyrics (optional)"
                   value={formData.lyrics}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, lyrics: event.target.value }))
@@ -174,7 +175,7 @@ const Upload = () => {
                 </label>
                 <textarea
                   className="form-input accented"
-                  placeholder="[00:10] First line&#10;[00:15] Second line"
+                  placeholder="[00:10] Line 1&#10;[00:15] Line 2"
                   value={formData.synced_lyrics}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, synced_lyrics: event.target.value }))
@@ -214,33 +215,39 @@ const Upload = () => {
 
             <button className="btn-primary" type="submit" disabled={loading}>
               <UploadCloud size={16} />
-              {loading ? 'Uploading...' : 'Publish song'}
+              {loading ? 'Uploading...' : 'Upload'}
             </button>
 
-            {message ? <p className="feedback-text">{message}</p> : null}
+            {message && (
+              <div className={`feedback-text ${message.includes('failed') || message.includes('required') ? 'error' : 'success'}`}>
+                {message}
+              </div>
+            )}
           </form>
 
           <div className="upload-sidebar">
             <aside className="detail-panel">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Upload checklist</p>
-                  <h4>Before you publish</h4>
+                  <p className="section-kicker">Info</p>
+                  <h4>Requirements</h4>
                 </div>
               </div>
               <div className="info-stack">
-                <p>Use a clean title and artist name so playlist search stays useful.</p>
-                <p>Attach cover art if you want your tracks to feel complete inside cards and player views.</p>
-                <p>Synced lyrics should follow the format <code>[mm:ss]</code> or <code>[mm:ss.xx]</code>.</p>
-                <p>Uploaded songs immediately become available in playlist add-song menus.</p>
+                <ul>
+                  <li>Audio file (MP3, WAV, OGG, M4A, FLAC)</li>
+                  <li>Title and artist information</li>
+                  <li>Cover image (optional)</li>
+                  <li>Lyrics (optional)</li>
+                </ul>
               </div>
             </aside>
 
             <aside className="detail-panel upload-stage">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Publishing stage</p>
-                  <h4>What goes live</h4>
+                  <p className="section-kicker">Files</p>
+                  <h4>Formats</h4>
                 </div>
               </div>
 

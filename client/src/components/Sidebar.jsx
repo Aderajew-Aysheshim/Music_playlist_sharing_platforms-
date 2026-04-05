@@ -1,4 +1,4 @@
-import { Compass, Home, Library, Music2, Radio, UploadCloud } from 'lucide-react';
+import { Compass, Home, Library, Music2, Radio, UploadCloud, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { getStoredUser, hasStoredAccessToken } from '../utils/session';
 
@@ -9,20 +9,24 @@ const navItems = [
   { to: '/upload', label: 'Upload', icon: UploadCloud, authOnly: true },
 ];
 
-function Sidebar() {
+function Sidebar({ className = '', onClose }) {
   const isAuthenticated = hasStoredAccessToken();
   const user = getStoredUser();
 
   return (
-    <aside className="app-sidebar">
+    <aside className={`app-sidebar ${className}`}>
       <div className="sidebar-brand">
         <div className="sidebar-brand-mark">
           <Music2 size={22} />
         </div>
         <div>
-          <p className="sidebar-eyebrow">Music Playlist Sharing App</p>
           <h1>MusiConnect</h1>
         </div>
+        {onClose && (
+          <button className="mobile-menu-toggle" onClick={onClose} style={{ marginLeft: 'auto' }}>
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">
@@ -36,6 +40,7 @@ function Sidebar() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                onClick={onClose}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -49,11 +54,8 @@ function Sidebar() {
           <Radio size={18} />
         </div>
         <div>
-          <h2>Built for shared listening</h2>
-          <p>
-            Public playlists, share links, collaborators, comments, and likes all
-            live here now.
-          </p>
+          <h2>Share & Discover</h2>
+          <p>Public playlists, comments, and likes</p>
         </div>
       </div>
 
@@ -62,12 +64,12 @@ function Sidebar() {
         {isAuthenticated && user ? (
           <>
             <strong>{user.username}</strong>
-            <span>{user.email || 'Authenticated listener'}</span>
+            <span>Logged in</span>
           </>
         ) : (
           <>
             <strong>Guest mode</strong>
-            <span>Browse public playlists or sign in to manage your library.</span>
+            <span>Sign in to manage playlists</span>
           </>
         )}
       </div>

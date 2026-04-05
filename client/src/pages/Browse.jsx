@@ -9,7 +9,7 @@ import {
   User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import api from '../api/axios';
 import { getResults, normalizePlaylists } from '../api/adapters';
@@ -46,16 +46,46 @@ const Browse = () => {
     }
   };
 
+  const createSamplePlaylist = async () => {
+    if (!isAuthenticated) {
+      window.alert('Please sign in to create a sample playlist.');
+      return;
+    }
+
+    try {
+      const samplePlaylist = {
+        name: 'Sample Public Playlist',
+        description: 'A sample playlist for testing the browse feature',
+        is_public: true,
+      };
+
+      const response = await api.post('playlists/', samplePlaylist);
+      console.log('Sample playlist created:', response.data);
+
+      // Refresh the browse page to show the new playlist
+      await fetchPublicPlaylists();
+
+      window.alert('Sample playlist created! It should now appear in the browse page.');
+    } catch (error) {
+      console.error('Error creating sample playlist:', error);
+      window.alert('Failed to create sample playlist. Please try again.');
+    }
+  };
+
   const fetchPublicPlaylists = async () => {
     setLoading(true);
 
     try {
+      console.log('Fetching public playlists...');
       const { data } = await api.get('browse/', {
         params: searchQuery ? { search: searchQuery } : undefined,
       });
-      setPlaylists(normalizePlaylists(data));
+      console.log('Browse API response:', data);
+      const normalized = normalizePlaylists(data);
+      console.log('Normalized playlists:', normalized);
+      setPlaylists(normalized);
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching public playlists:', error);
       setPlaylists([]);
     } finally {
       setExpandedId(null);
@@ -144,29 +174,47 @@ const Browse = () => {
         <div className="hero-copy">
           <span className="page-tag">
             <Compass size={14} />
-            Public discovery
+            Browse
           </span>
-          <h1>Explore public playlists created by the community.</h1>
-          <p>
-            Search public collections, preview tracks, like what stands out, and
-            join the discussion when you are signed in.
-          </p>
+          <h1>Discover Playlists</h1>
+          <p>Explore community collections</p>
         </div>
       </section>
 
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="section-kicker">Community playlists</p>
-            <h2>{searchQuery ? `Results for "${searchQuery}"` : 'Open playlists'}</h2>
+            <p className="section-kicker">Community</p>
+            <h2>{searchQuery ? `Results for "${searchQuery}"` : 'Public Playlists'}</h2>
           </div>
         </div>
 
         {loading ? (
-          <div className="empty-state">Loading public playlists...</div>
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
         ) : playlists.length === 0 ? (
           <div className="empty-state">
-            {searchQuery ? 'No public playlists matched your search.' : 'No playlists are public yet.'}
+            <Compass size={48} />
+            <h3>{searchQuery ? 'No results found' : 'No public playlists'}</h3>
+            <p>{searchQuery ? 'Try different search terms' : 'Create and share playlists!'}</p>
+            {!searchQuery && (
+              <>
+                <Link to="/playlists" className="btn-primary">
+                  <ListMusic size={16} />
+                  Create Playlist
+                </Link>
+                <button
+                  className="btn-secondary"
+                  onClick={createSamplePlaylist}
+                  style={{ marginLeft: '0.5rem' }}
+                >
+                  <Compass size={16} />
+                  Create Sample
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="playlist-stack">
@@ -183,7 +231,7 @@ const Browse = () => {
                       </div>
                       <div className="playlist-summary-copy">
                         <h3>{playlist.name}</h3>
-                        <p>{playlist.description || 'A public playlist ready for listening.'}</p>
+                        <p>{playlist.description || 'Public playlist'}</p>
                         <div className="chip-row">
                           <span className="metric-pill">{playlist.songCount} songs</span>
                           <span className="metric-pill">{playlist.likesCount} likes</span>

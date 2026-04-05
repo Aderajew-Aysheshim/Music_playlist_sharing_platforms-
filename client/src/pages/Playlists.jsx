@@ -146,6 +146,17 @@ const Playlists = () => {
     }
   };
 
+  const makePlaylistPublic = async (playlistId) => {
+    try {
+      await api.patch(`playlists/${playlistId}/`, { is_public: true });
+      setPageFeedback('Playlist is now public!');
+      fetchLibrary(); // Refresh the playlists
+    } catch (error) {
+      console.error('Error making playlist public:', error);
+      setPageFeedback('Could not update playlist.');
+    }
+  };
+
   const createPlaylist = async (event) => {
     event.preventDefault();
     if (!playlistForm.name.trim()) {
@@ -412,36 +423,24 @@ const Playlists = () => {
         <div className="hero-copy">
           <span className="page-tag">
             <Music size={14} />
-            Library workspace
+            Library
           </span>
-          <h1>Control the full playlist lifecycle from one page.</h1>
-          <p>
-            Create playlists, tune visibility, copy share links, manage collaborators,
-            like playlists, and keep the comment thread close to the tracks.
-          </p>
-          <div className="metric-row">
-            <span className="metric-pill">{playlists.length} playlists</span>
-            <span className="metric-pill">
-              {playlists.filter((playlist) => playlist.isPublic).length} public
-            </span>
-            <span className="metric-pill">
-              {playlists.filter((playlist) => playlist.userRole === 'editor').length} editor collaborations
-            </span>
-          </div>
+          <h1>Your Playlists</h1>
+          <p>Manage your music</p>
         </div>
 
         <form className="create-panel" onSubmit={createPlaylist}>
           <div className="section-heading compact">
             <div>
               <p className="section-kicker">New playlist</p>
-              <h2>Create a fresh collection</h2>
+              <h2>Create Playlist</h2>
             </div>
           </div>
 
           <input
             className="form-input"
             type="text"
-            placeholder="Weekend run mix"
+            placeholder="Playlist name"
             value={playlistForm.name}
             onChange={(event) =>
               setPlaylistForm((current) => ({ ...current, name: event.target.value }))
@@ -449,13 +448,13 @@ const Playlists = () => {
           />
           <textarea
             className="form-input"
-            placeholder="Add a short description"
+            placeholder="Description (optional)"
             value={playlistForm.description}
             onChange={(event) =>
               setPlaylistForm((current) => ({ ...current, description: event.target.value }))
             }
           />
-          <label className="toggle-row">
+          <label className="toggle-row" style={{ background: playlistForm.is_public ? 'rgba(34, 212, 101, 0.1)' : 'rgba(255,255,255,0.04)', padding: '0.75rem', borderRadius: 'var(--radius)', border: playlistForm.is_public ? '1px solid rgba(34, 212, 101, 0.3)' : '1px solid var(--border)' }}>
             <input
               type="checkbox"
               checked={playlistForm.is_public}
@@ -463,7 +462,11 @@ const Playlists = () => {
                 setPlaylistForm((current) => ({ ...current, is_public: event.target.checked }))
               }
             />
-            <span>Make this playlist public immediately</span>
+            <div>
+              <strong>{playlistForm.is_public ? '🌐 Public Playlist' : '🔒 Private Playlist'}</strong>
+              <br />
+              <small>{playlistForm.is_public ? 'Anyone can see this playlist' : 'Only you can see this playlist'}</small>
+            </div>
           </label>
           <button className="btn-primary" type="submit">
             <Plus size={16} />
@@ -476,15 +479,22 @@ const Playlists = () => {
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="section-kicker">Your playlists</p>
-            <h2>Owned and shared with you</h2>
+            <p className="section-kicker">Library</p>
+            <h2>Your Playlists</h2>
           </div>
         </div>
 
         {loading ? (
-          <div className="empty-state">Loading your library...</div>
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
         ) : playlists.length === 0 ? (
-          <div className="empty-state">You do not have any playlists yet.</div>
+          <div className="empty-state">
+            <Music size={48} />
+            <h3>No playlists yet</h3>
+            <p>Create your first playlist!</p>
+          </div>
         ) : (
           <div className="playlist-stack">
             {playlists.map((playlist) => {
@@ -509,7 +519,7 @@ const Playlists = () => {
                       </div>
                       <div className="playlist-summary-copy">
                         <h3>{playlist.name}</h3>
-                        <p>{playlist.description || 'No description yet.'}</p>
+                        <p>{playlist.description || 'No description'}</p>
                         <div className="chip-row">
                           <span className="metric-pill">{playlist.songCount} songs</span>
                           <span className="metric-pill">{playlist.likesCount} likes</span>
@@ -529,6 +539,16 @@ const Playlists = () => {
                       </button>
                       {isOwner ? (
                         <>
+                          {!playlist.isPublic && (
+                            <button
+                              className="icon-button"
+                              onClick={() => makePlaylistPublic(playlist.id)}
+                              title="Make playlist public"
+                              style={{ color: '#22d465' }}
+                            >
+                              <Globe size={16} />
+                            </button>
+                          )}
                           <button className="icon-button" onClick={() => copyShareLink(playlist)}>
                             <Copy size={16} />
                           </button>
