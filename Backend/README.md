@@ -1,90 +1,81 @@
 # MusiConnect Backend
 
-Django REST API for a music playlist sharing platform.
+Django REST API for the Music Playlist Sharing Platform.
 
-## What It Supports
+## Production Readiness
 
-- JWT registration, login, logout, and token refresh
-- Song upload with basic file validation
-- Secure song updates and deletes by uploader only
-- Song streaming endpoint
-- Playlist create, list, retrieve, update, and delete
-- Ordered songs inside playlists
-- Public and private playlists
-- Shareable token-based playlist links
-- Collaborators with `editor` and `viewer` roles
-- Playlist comments and likes
-- Pagination, search, filtering, and ordering
-- Django admin for all core models
+This backend is now configured for:
 
-## Main Endpoints
+- environment-based configuration
+- PostgreSQL via `DATABASE_URL`
+- WhiteNoise static file serving
+- Gunicorn startup
+- optional media serving for uploaded files
 
-- `POST /api/register/`
-- `POST /api/login/`
-- `POST /api/logout/`
-- `POST /api/token/refresh/`
-- `GET /api/songs/`
-- `POST /api/songs/`
-- `GET /api/songs/{id}/`
-- `PATCH /api/songs/{id}/`
-- `DELETE /api/songs/{id}/`
-- `GET /api/songs/{id}/stream/`
-- `GET /api/playlists/`
-- `POST /api/playlists/`
-- `GET /api/playlists/{id}/`
-- `PUT /api/playlists/{id}/`
-- `DELETE /api/playlists/{id}/`
-- `POST /api/playlists/{id}/add_song/`
-- `POST /api/playlists/{id}/remove_song/`
-- `GET /api/public/playlists/`
-- `GET /api/public/playlists/{id}/`
-- `GET /api/share/{token}/`
-- `GET /api/playlists/{id}/collaborators/`
-- `POST /api/playlists/{id}/collaborators/`
-- `PUT /api/playlists/{id}/collaborators/{collaborator_id}/`
-- `DELETE /api/playlists/{id}/collaborators/{collaborator_id}/`
-- `GET /api/playlists/{id}/comments/`
-- `POST /api/playlists/{id}/comments/`
-- `PUT /api/playlists/{id}/comments/{comment_id}/`
-- `DELETE /api/playlists/{id}/comments/{comment_id}/`
-- `POST /api/playlists/{id}/like/`
-- `DELETE /api/playlists/{id}/like/`
+## Required Environment Variables
 
-## Security Improvements Included
+Start from [.env.example](.env.example).
 
-- Environment-driven Django settings
-- Default pagination and throttling
-- JWT refresh rotation with blacklist support
-- Restricted CORS configuration by default
-- Upload validation for audio and cover images
-- Owner-only song modification
-- Private playlists hidden unless public, shared, or explicitly authorized
-- Safer repository setup with `.gitignore` and `.env.example`
+Important values:
 
-## Setup
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG=False`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CORS_ALLOWED_ORIGINS`
+- `DJANGO_FRONTEND_SITE_URL`
+- `DATABASE_URL`
+
+Optional deployment values:
+
+- `DJANGO_CSRF_TRUSTED_ORIGINS`
+- `DJANGO_MEDIA_ROOT`
+- `DJANGO_MEDIA_URL`
+- `DJANGO_STATIC_ROOT`
+- `DJANGO_SERVE_MEDIA=True`
+- `DJANGO_SECURE_SSL_REDIRECT=True`
+
+## Install
 
 ```bash
 pip install -r requirements.txt
+```
+
+## Development
+
+```bash
 python manage.py migrate
-python manage.py createsuperuser
 python manage.py runserver
 ```
 
-## Environment Variables
+## Deployment Commands
 
-Use `.env.example` as a starting point.
-
-Important settings:
-
-- `DJANGO_SECRET_KEY`
-- `DJANGO_DEBUG`
-- `DJANGO_ALLOWED_HOSTS`
-- `DJANGO_CORS_ALLOWED_ORIGINS`
-- `DJANGO_CORS_ALLOW_ALL_ORIGINS`
-
-## Running Checks
+Build command:
 
 ```bash
-python manage.py check
+./build.sh
+```
+
+Start command:
+
+```bash
+gunicorn playlist_api.wsgi:application
+```
+
+If your host supports Procfiles, [Procfile](Procfile) is already included.
+
+## Notes About Uploaded Media
+
+This project stores uploaded songs and cover images as media files. For production, use one of these:
+
+- a persistent disk on the backend host
+- object storage such as S3 in a later upgrade
+
+For MVP deployments on a single backend service, `DJANGO_SERVE_MEDIA=True` can be used so Django serves uploaded files directly.
+
+## Checks
+
+```bash
+python manage.py check --deploy
+python manage.py migrate
 python manage.py test
 ```
