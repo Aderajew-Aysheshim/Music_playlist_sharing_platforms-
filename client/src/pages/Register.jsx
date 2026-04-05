@@ -1,6 +1,7 @@
+import { Music2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+
 import api from '../api/axios';
 
 const Register = () => {
@@ -16,61 +17,86 @@ const Register = () => {
       localStorage.setItem('user', JSON.stringify(data.user));
       window.location.href = '/';
     } catch (err) {
-      setError(Object.values(err.response?.data || {}).flat().join(', ') || 'Registration failed');
+      setError(
+        Object.values(err.response?.data || {}).flat().join(', ') || 'Registration failed. Please try again.',
+      );
     }
   };
 
   return (
-    <div className="flex justify-center items-center" style={{ minHeight: '60vh' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
-        <h2 className="heading text-center flex items-center justify-center gap-2 mb-8">
-          <UserPlus size={28} style={{ color: 'var(--primary)' }} />
-          Create Account
-        </h2>
-        
-        {error && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+    <div className="auth-page">
+      <div className="auth-card">
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: '3rem',
+              height: '3rem',
+              borderRadius: '1rem',
+              background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+              display: 'grid',
+              placeItems: 'center',
+              margin: '0 auto 1rem',
+              boxShadow: '0 6px 24px rgba(34,212,101,0.30)',
+            }}
+          >
+            <Music2 size={22} color="#041a0c" />
+          </div>
+          <h2>Create your account</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>
+            Join MusiConnect and start sharing music
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        {error && <div className="auth-error">{error}</div>}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <div className="form-group">
             <label className="form-label">Username</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Ad"
+            <input
+              id="register-username"
+              type="text"
+              className="form-input"
+              placeholder="ada"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              required 
+              required
             />
           </div>
+
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input 
-              type="email" 
-              className="form-input" 
-              placeholder="ad@example.com"
+            <input
+              id="register-email"
+              type="email"
+              className="form-input"
+              placeholder="you@example.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required 
+              required
             />
           </div>
-          <div className="form-group mb-8">
+
+          <div className="form-group">
             <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              placeholder="********"
+            <input
+              id="register-password"
+              type="password"
+              className="form-input"
+              placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required 
+              required
             />
           </div>
-          <button type="submit" className="btn-primary w-full" style={{ padding: '1rem' }}>
-            Register
+
+          <button id="register-submit" type="submit" className="btn-primary" style={{ marginTop: '0.4rem', justifyContent: 'center', padding: '0.85rem' }}>
+            Create account
           </button>
         </form>
 
-        <p className="mt-8 text-center" style={{ color: 'var(--text-muted)' }}>
-          Already have an account? <Link to="/login" style={{ color: 'var(--primary)' }}>Login here</Link>
+        <p className="auth-link">
+          Already have an account?{' '}
+          <Link to="/login">Sign in</Link>
         </p>
       </div>
     </div>
