@@ -29,7 +29,7 @@ const pageMeta = {
   },
 };
 
-function Navbar() {
+function Navbar({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,10 +67,13 @@ function Navbar() {
 
   return (
     <header className="topbar">
-      <div>
-        <p className="section-kicker">{pageDetails.title}</p>
-        <h1 className="topbar-title">{pageDetails.title}</h1>
-        <p className="topbar-subtitle">{pageDetails.subtitle}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+        {children}
+        <div>
+          <p className="section-kicker">{pageDetails.title}</p>
+          <h1 className="topbar-title">{pageDetails.title}</h1>
+          <p className="topbar-subtitle">{pageDetails.subtitle}</p>
+        </div>
       </div>
 
       <div className="topbar-actions">
@@ -90,12 +93,10 @@ function Navbar() {
               <UserRound size={16} />
               <div>
                 <strong>{user.username}</strong>
-                <span>{user.email || 'Signed in'}</span>
               </div>
             </div>
             <button className="btn-secondary compact" onClick={handleLogout}>
               <LogOut size={16} />
-              Logout
             </button>
           </>
         ) : (
@@ -105,8 +106,8 @@ function Navbar() {
               <span>Sign in to manage your library.</span>
             </div>
             <Link to="/login" className="btn-secondary compact">Login</Link>
-            <Link to="/register" className="btn-primary compact">Register</Link>
-          </div>
+            <Link to="/register" className="btn-primary compact">Sign Up</Link>
+          </>
         )}
       </div>
     </header>

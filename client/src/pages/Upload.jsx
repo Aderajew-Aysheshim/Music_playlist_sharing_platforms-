@@ -39,7 +39,12 @@ const Upload = () => {
     event.preventDefault();
 
     if (!audioFile) {
-      setMessage('Audio file is required.');
+      setMessage('Please select an audio file.');
+      return;
+    }
+
+    if (!formData.title.trim() || !formData.artist.trim()) {
+      setMessage('Title and artist are required.');
       return;
     }
 
@@ -47,33 +52,51 @@ const Upload = () => {
     setMessage('');
 
     const data = new FormData();
-    data.append('title', formData.title);
-    data.append('artist', formData.artist);
-    data.append('lyrics', formData.lyrics);
-    data.append('synced_lyrics', formData.synced_lyrics);
+    data.append('title', formData.title.trim());
+    data.append('artist', formData.artist.trim());
+    data.append('lyrics', formData.lyrics.trim());
+    data.append('synced_lyrics', formData.synced_lyrics.trim());
     data.append('audio_file', audioFile);
     if (coverImage) {
       data.append('cover_image', coverImage);
     }
 
     try {
-      await api.post('songs/', data, {
+      const response = await api.post('songs/', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setMessage('Song uploaded successfully.');
-      setFormData({
-        title: '',
-        artist: '',
-        lyrics: '',
-        synced_lyrics: '',
-      });
-      setAudioFile(null);
-      setCoverImage(null);
+
+      if (response.data) {
+        setMessage('Song uploaded successfully!');
+        setFormData({
+          title: '',
+          artist: '',
+          lyrics: '',
+          synced_lyrics: '',
+        });
+        setAudioFile(null);
+        setCoverImage(null);
+
+        // Clear file inputs
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => input.value = '');
+      }
     } catch (error) {
-      setMessage(
-        Object.values(error.response?.data || {}).flat().join(', ')
-        || 'Upload failed.',
-      );
+      console.error('Upload error:', error);
+
+      if (error.response?.data) {
+        const errors = Object.entries(error.response.data)
+          .map(([field, messages]) => {
+            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const errorList = Array.isArray(messages) ? messages.join(', ') : messages;
+            return `${fieldName}: ${errorList}`;
+          });
+        setMessage(errors.join('; '));
+      } else if (error.message) {
+        setMessage(`Upload failed: ${error.message}`);
+      } else {
+        setMessage('Upload failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -124,7 +147,7 @@ const Upload = () => {
                 <input
                   className="form-input"
                   type="text"
-                  placeholder="Golden hour commute"
+                  placeholder="Song title"
                   value={formData.title}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, title: event.target.value }))
@@ -171,7 +194,7 @@ const Upload = () => {
                 </label>
                 <textarea
                   className="form-input accented"
-                  placeholder="[00:10] First line&#10;[00:15] Second line"
+                  placeholder="[00:10] Line 1&#10;[00:15] Line 2"
                   value={formData.synced_lyrics}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, synced_lyrics: event.target.value }))
@@ -211,10 +234,14 @@ const Upload = () => {
 
             <button className="btn-primary" type="submit" disabled={loading}>
               <UploadCloud size={16} />
-              {loading ? 'Uploading...' : 'Publish song'}
+              {loading ? 'Uploading...' : 'Upload'}
             </button>
 
-            {message ? <p className="feedback-text">{message}</p> : null}
+            {message && (
+              <div className={`feedback-text ${message.includes('failed') || message.includes('required') ? 'error' : 'success'}`}>
+                {message}
+              </div>
+            )}
           </form>
 
           <div className="upload-sidebar">

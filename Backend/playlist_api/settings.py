@@ -2,7 +2,10 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-import dj_database_url
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
 
 
 def env_bool(name, default=False):
@@ -81,7 +84,7 @@ WSGI_APPLICATION = 'playlist_api.wsgi.application'
 
 database_url = os.getenv('DATABASE_URL') or os.getenv('DJANGO_DATABASE_URL')
 
-if database_url:
+if database_url and dj_database_url:
     DATABASES = {
         'default': dj_database_url.parse(
             database_url,

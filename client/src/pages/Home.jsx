@@ -94,7 +94,6 @@ const Home = () => {
           <h1>Build and share playlists.</h1>
           <p>Upload tracks, organize playlists, and share them fast.</p>
           <div className="metric-row">
-            <span className="metric-pill">{songs.length} uploaded tracks</span>
             <span className="metric-pill">{publicPlaylists.length} public playlists</span>
             <span className="metric-pill">{playlists.length} playlists in your library</span>
           </div>
@@ -123,24 +122,35 @@ const Home = () => {
             <p>Add songs, artwork, and lyrics.</p>
           </div>
         </div>
-      </section>
+      </section >
 
       <section className="section-card">
         <div className="section-heading">
           <div>
             <p className="section-kicker">Latest tracks</p>
-            <h2>Recently added songs</h2>
+            <h2>Recent Uploads</h2>
           </div>
           <Link to="/upload" className="btn-secondary compact">
             <UploadCloud size={16} />
-            Upload a song
+            Upload
           </Link>
         </div>
 
         {loading ? (
-          <div className="empty-state">Loading your music feed...</div>
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
         ) : latestSongs.length === 0 ? (
-          <div className="empty-state">No songs uploaded yet.</div>
+          <div className="empty-state">
+            <Music size={48} />
+            <h3>No songs yet</h3>
+            <p>Be the first to share music!</p>
+            <Link to="/upload" className="btn-primary">
+              <UploadCloud size={16} />
+              Upload
+            </Link>
+          </div>
         ) : (
           <div className="song-card-grid">
             {latestSongs.map((song) => {
@@ -233,16 +243,24 @@ const Home = () => {
         <div className="section-heading">
           <div>
             <p className="section-kicker">Public discovery</p>
-            <h2>Featured community playlists</h2>
+            <h2>Featured Playlists</h2>
           </div>
           <Link to="/browse" className="btn-secondary compact">
             <Compass size={16} />
-            Browse all
+            Browse
           </Link>
         </div>
 
         {featuredPlaylists.length === 0 ? (
-          <div className="empty-state">No public playlists are available yet.</div>
+          <div className="empty-state">
+            <Compass size={48} />
+            <h3>No playlists yet</h3>
+            <p>Create and share playlists!</p>
+            <Link to="/playlists" className="btn-primary">
+              <Plus size={16} />
+              Create
+            </Link>
+          </div>
         ) : (
           <div className="feature-grid">
             {featuredPlaylists.map((playlist) => (
@@ -269,7 +287,7 @@ const Home = () => {
           </div>
         )}
       </section>
-    </div>
+    </div >
   );
 };
 
