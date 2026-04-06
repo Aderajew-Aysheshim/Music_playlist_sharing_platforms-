@@ -60,10 +60,7 @@ const SharedPlaylist = () => {
             Shared access
           </span>
           <h1>{playlist.name}</h1>
-          <p>
-            This playlist was opened through a share token. Anyone with the link can
-            listen to the track list without needing the owner account.
-          </p>
+          <p>Open this playlist from its share link.</p>
           <div className="metric-row">
             <span className="metric-pill">{playlist.songCount} songs</span>
             <span className="metric-pill">{playlist.ownerName || 'Shared by owner'}</span>
@@ -82,7 +79,7 @@ const SharedPlaylist = () => {
         <div className="section-heading">
           <div>
             <p className="section-kicker">Track list</p>
-            <h2>Listen from the shared queue</h2>
+            <h2>Shared tracks</h2>
           </div>
         </div>
 

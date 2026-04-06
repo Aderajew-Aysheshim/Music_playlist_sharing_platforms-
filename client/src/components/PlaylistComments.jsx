@@ -3,9 +3,11 @@ import { MessageSquare, Trash2 } from 'lucide-react';
 function PlaylistComments({
   comments,
   draft,
+  canComment = true,
   currentUserId,
   ownerUsername,
   currentUsername,
+  disabledMessage = 'Sign in to comment.',
   onDraftChange,
   onSubmit,
   onDelete,
@@ -19,18 +21,22 @@ function PlaylistComments({
         </div>
       </div>
 
-      <div className="inline-form">
-        <textarea
-          className="form-input"
-          placeholder="Share a note or suggestion"
-          value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
-        />
-        <button className="btn-primary compact" onClick={onSubmit}>
-          <MessageSquare size={16} />
-          Post comment
-        </button>
-      </div>
+      {canComment ? (
+        <div className="inline-form">
+          <textarea
+            className="form-input"
+            placeholder="Share a note or suggestion"
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+          />
+          <button className="btn-primary compact" onClick={onSubmit}>
+            <MessageSquare size={16} />
+            Post comment
+          </button>
+        </div>
+      ) : (
+        <div className="empty-inline">{disabledMessage}</div>
+      )}
 
       <div className="inline-list">
         {comments.length ? (

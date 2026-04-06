@@ -60,8 +60,19 @@ const Home = () => {
 
   const latestSongs = useMemo(() => songs.slice(0, 8), [songs]);
   const featuredPlaylists = useMemo(() => publicPlaylists.slice(0, 4), [publicPlaylists]);
+  const editablePlaylists = useMemo(
+    () => playlists.filter((playlist) => ['owner', 'editor'].includes(playlist.userRole)),
+    [playlists],
+  );
 
   const addToPlaylist = async (songId, playlistId) => {
+    const selectedPlaylist = editablePlaylists.find((playlist) => playlist.id === playlistId);
+
+    if (!selectedPlaylist) {
+      window.alert('You can only add songs to playlists you own or can edit.');
+      return;
+    }
+
     try {
       await api.post(`playlists/${playlistId}/add_song/`, { song_id: songId });
       setOpenDropdown(null);
@@ -80,11 +91,8 @@ const Home = () => {
             <Disc3 size={14} />
             Shared library
           </span>
-          <h1>Build collaborative playlists with a player-first experience.</h1>
-          <p>
-            MusiConnect now supports public discovery, share links, collaborators,
-            comments, likes, and synced lyrics in a cleaner app shell.
-          </p>
+          <h1>Build and share playlists.</h1>
+          <p>Upload tracks, organize playlists, and share them fast.</p>
           <div className="metric-row">
             <span className="metric-pill">{songs.length} uploaded tracks</span>
             <span className="metric-pill">{publicPlaylists.length} public playlists</span>
@@ -97,22 +105,22 @@ const Home = () => {
             <div className="spotlight-icon">
               <Share2 size={20} />
             </div>
-            <h2>Share instantly</h2>
-            <p>Create playlists, toggle them public or private, and copy share links for listeners.</p>
+            <h2>Share</h2>
+            <p>Copy links and send playlists fast.</p>
           </div>
           <div className="spotlight-card">
             <div className="spotlight-icon">
               <Compass size={20} />
             </div>
-            <h2>Discover the community</h2>
-            <p>Browse public playlists and jump straight into playback from any track row.</p>
+            <h2>Browse</h2>
+            <p>Open public playlists and play instantly.</p>
           </div>
           <div className="spotlight-card">
             <div className="spotlight-icon">
               <UploadCloud size={20} />
             </div>
-            <h2>Upload with lyrics</h2>
-            <p>Publish tracks with artwork, full lyrics, and practice mode synced lyric timing.</p>
+            <h2>Upload</h2>
+            <p>Add songs, artwork, and lyrics.</p>
           </div>
         </div>
       </section>
@@ -197,7 +205,7 @@ const Home = () => {
                           </button>
                           {openDropdown === song.id ? (
                             <div className="dropdown-panel">
-                              {playlists.length ? playlists.map((playlist) => (
+                              {editablePlaylists.length ? editablePlaylists.map((playlist) => (
                                 <button
                                   key={playlist.id}
                                   className="dropdown-item"
@@ -206,7 +214,7 @@ const Home = () => {
                                   {playlist.name}
                                 </button>
                               )) : (
-                                <span className="dropdown-empty">Create a playlist first.</span>
+                                <span className="dropdown-empty">Create a playlist or get editor access first.</span>
                               )}
                             </div>
                           ) : null}
@@ -239,12 +247,19 @@ const Home = () => {
           <div className="feature-grid">
             {featuredPlaylists.map((playlist) => (
               <article key={playlist.id} className="feature-card">
+                <div className="feature-card-cover">
+                  {playlist.playlistCoverImageUrl ? (
+                    <img src={playlist.playlistCoverImageUrl} alt={playlist.name} />
+                  ) : (
+                    <Music size={26} />
+                  )}
+                </div>
                 <div className="feature-card-header">
                   <span className="page-tag subtle">{playlist.isPublic ? 'Public' : 'Private'}</span>
                   <span className="metric-pill">{playlist.songCount} songs</span>
                 </div>
                 <h3>{playlist.name}</h3>
-                <p>{playlist.description || 'Curated for quick playback and easy sharing.'}</p>
+                <p>{playlist.description || 'Ready to play.'}</p>
                 <div className="feature-card-footer">
                   <span>{playlist.ownerName || 'Community playlist'}</span>
                   <span>{playlist.likesCount} likes</span>

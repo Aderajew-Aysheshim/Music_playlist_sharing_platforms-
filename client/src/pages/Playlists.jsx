@@ -414,11 +414,8 @@ const Playlists = () => {
             <Music size={14} />
             Library workspace
           </span>
-          <h1>Control the full playlist lifecycle from one page.</h1>
-          <p>
-            Create playlists, tune visibility, copy share links, manage collaborators,
-            like playlists, and keep the comment thread close to the tracks.
-          </p>
+          <h1>Manage your playlists.</h1>
+          <p>Create, edit, share, and collaborate from one place.</p>
           <div className="metric-row">
             <span className="metric-pill">{playlists.length} playlists</span>
             <span className="metric-pill">
@@ -505,7 +502,13 @@ const Playlists = () => {
                   <div className="playlist-card-header">
                     <button className="playlist-summary" onClick={() => toggleExpand(playlist.id)}>
                       <div className="playlist-summary-art">
-                        {playlist.isPublic ? <Globe size={18} /> : <Lock size={18} />}
+                        {playlist.playlistCoverImageUrl ? (
+                          <img src={playlist.playlistCoverImageUrl} alt={playlist.name} />
+                        ) : playlist.isPublic ? (
+                          <Globe size={18} />
+                        ) : (
+                          <Lock size={18} />
+                        )}
                       </div>
                       <div className="playlist-summary-copy">
                         <h3>{playlist.name}</h3>
@@ -704,7 +707,7 @@ const Playlists = () => {
                               <span className="metric-pill">
                                 {playlist.isPublic ? 'Public' : 'Private'}
                               </span>
-                              <p>You can view this playlist because your role is {playlist.userRole}.</p>
+                              <p>Role: {playlist.userRole}.</p>
                             </div>
                           )}
                         </section>

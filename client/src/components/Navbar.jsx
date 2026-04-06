@@ -13,19 +13,19 @@ import { getStoredUser, hasStoredAccessToken } from '../utils/session';
 const pageMeta = {
   '/': {
     title: 'Home',
-    subtitle: 'Fresh uploads, playlist highlights, and fast entry points into the app.',
+    subtitle: 'Tracks, playlists, and quick actions.',
   },
   '/browse': {
     title: 'Browse',
-    subtitle: 'Public playlists from the community, now with comments and likes.',
+    subtitle: 'Public playlists from the community.',
   },
   '/playlists': {
     title: 'Library',
-    subtitle: 'Manage your playlists, collaborators, visibility, comments, and share links.',
+    subtitle: 'Your playlists and collaborations.',
   },
   '/upload': {
     title: 'Upload',
-    subtitle: 'Publish songs with artwork and synced lyrics for playback mode.',
+    subtitle: 'Add a new track.',
   },
 };
 
@@ -39,7 +39,7 @@ function Navbar() {
   const pageDetails = useMemo(
     () => pageMeta[location.pathname] || {
       title: 'MusiConnect',
-      subtitle: 'Playlist sharing, collaboration, and music discovery in one place.',
+      subtitle: 'Playlist sharing and discovery.',
     },
     [location.pathname],
   );
@@ -102,7 +102,7 @@ function Navbar() {
           <div className="auth-strip">
             <div className="auth-message">
               <Sparkles size={16} />
-              <span>Sign in to manage playlists, comments, and collaboration.</span>
+              <span>Sign in to manage your library.</span>
             </div>
             <Link to="/login" className="btn-secondary compact">Login</Link>
             <Link to="/register" className="btn-primary compact">Register</Link>

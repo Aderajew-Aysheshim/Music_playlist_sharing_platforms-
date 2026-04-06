@@ -28,12 +28,12 @@ const Upload = () => {
   const [message, setMessage] = useState('');
 
   const audioSummary = audioFile
-    ? `${audioFile.name} • ${formatFileSize(audioFile.size)}`
-    : 'No audio selected yet';
+    ? `${audioFile.name} - ${formatFileSize(audioFile.size)}`
+    : 'No audio selected';
 
   const coverSummary = coverImage
-    ? `${coverImage.name} • ${formatFileSize(coverImage.size)}`
-    : 'No cover selected yet';
+    ? `${coverImage.name} - ${formatFileSize(coverImage.size)}`
+    : 'No cover selected';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -85,27 +85,24 @@ const Upload = () => {
         <div className="hero-copy">
           <span className="page-tag">
             <UploadCloud size={14} />
-            Upload flow
+            Upload
           </span>
-          <h1>Publish tracks with artwork and lyric experiences.</h1>
-          <p>
-            Songs uploaded here become available for playback, playlist building,
-            public discovery, and practice-mode synced lyrics.
-          </p>
+          <h1>Upload a track.</h1>
+          <p>Add audio, artwork, and lyrics.</p>
         </div>
         <div className="hero-grid upload-hero-grid">
           <div className="spotlight-card accent">
             <div className="spotlight-icon">
               <Music size={20} />
             </div>
-            <h2>Audio ready</h2>
+            <h2>Audio</h2>
             <p>{audioSummary}</p>
           </div>
           <div className="spotlight-card">
             <div className="spotlight-icon">
               <ImageIcon size={20} />
             </div>
-            <h2>Cover status</h2>
+            <h2>Cover</h2>
             <p>{coverSummary}</p>
           </div>
         </div>
@@ -115,7 +112,7 @@ const Upload = () => {
         <div className="section-heading">
           <div>
             <p className="section-kicker">Song publishing</p>
-            <h2>Prepare a polished upload</h2>
+            <h2>Upload details</h2>
           </div>
         </div>
 
@@ -159,7 +156,7 @@ const Upload = () => {
                 </label>
                 <textarea
                   className="form-input"
-                  placeholder="Paste the complete lyric text here."
+                  placeholder="Paste the full lyrics here."
                   value={formData.lyrics}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, lyrics: event.target.value }))
@@ -224,22 +221,22 @@ const Upload = () => {
             <aside className="detail-panel">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Upload checklist</p>
-                  <h4>Before you publish</h4>
+                  <p className="section-kicker">Checklist</p>
+                  <h4>Before upload</h4>
                 </div>
               </div>
               <div className="info-stack">
-                <p>Use a clean title and artist name so playlist search stays useful.</p>
-                <p>Attach cover art if you want your tracks to feel complete inside cards and player views.</p>
-                <p>Synced lyrics should follow the format <code>[mm:ss]</code> or <code>[mm:ss.xx]</code>.</p>
-                <p>Uploaded songs immediately become available in playlist add-song menus.</p>
+                <p>Use a clear title and artist name.</p>
+                <p>Add cover art if you have it.</p>
+                <p>Synced lyrics use <code>[mm:ss]</code> or <code>[mm:ss.xx]</code>.</p>
+                <p>Uploads appear in playlist menus right away.</p>
               </div>
             </aside>
 
             <aside className="detail-panel upload-stage">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Publishing stage</p>
+                  <p className="section-kicker">Summary</p>
                   <h4>What goes live</h4>
                 </div>
               </div>
@@ -259,7 +256,7 @@ const Upload = () => {
                     ? 'Full lyrics + practice mode'
                     : formData.lyrics.trim()
                       ? 'Full lyrics only'
-                      : 'No lyrics attached yet'}
+                      : 'No lyrics yet'}
                 </span>
               </div>
             </aside>
