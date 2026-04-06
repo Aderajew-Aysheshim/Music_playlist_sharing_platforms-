@@ -28,12 +28,12 @@ const Upload = () => {
   const [message, setMessage] = useState('');
 
   const audioSummary = audioFile
-    ? `${audioFile.name} • ${formatFileSize(audioFile.size)}`
-    : 'No audio selected yet';
+    ? `${audioFile.name} - ${formatFileSize(audioFile.size)}`
+    : 'No audio selected';
 
   const coverSummary = coverImage
-    ? `${coverImage.name} • ${formatFileSize(coverImage.size)}`
-    : 'No cover selected yet';
+    ? `${coverImage.name} - ${formatFileSize(coverImage.size)}`
+    : 'No cover selected';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -106,17 +106,36 @@ const Upload = () => {
     <div className="page-stack">
       <section className="hero-card">
         <div className="hero-copy">
-          <span className="page-tag">Upload</span>
-          <h1>Upload Music</h1>
-          <p>Share your songs</p>
+          <span className="page-tag">
+            <UploadCloud size={14} />
+            Upload
+          </span>
+          <h1>Upload a track.</h1>
+          <p>Add audio, artwork, and lyrics.</p>
+        </div>
+        <div className="hero-grid upload-hero-grid">
+          <div className="spotlight-card accent">
+            <div className="spotlight-icon">
+              <Music size={20} />
+            </div>
+            <h2>Audio</h2>
+            <p>{audioSummary}</p>
+          </div>
+          <div className="spotlight-card">
+            <div className="spotlight-icon">
+              <ImageIcon size={20} />
+            </div>
+            <h2>Cover</h2>
+            <p>{coverSummary}</p>
+          </div>
         </div>
       </section>
 
       <section className="section-card">
         <div className="section-heading">
           <div>
-            <p className="section-kicker">Upload</p>
-            <h2>Add Song</h2>
+            <p className="section-kicker">Song publishing</p>
+            <h2>Upload details</h2>
           </div>
         </div>
 
@@ -160,7 +179,7 @@ const Upload = () => {
                 </label>
                 <textarea
                   className="form-input"
-                  placeholder="Lyrics (optional)"
+                  placeholder="Paste the full lyrics here."
                   value={formData.lyrics}
                   onChange={(event) =>
                     setFormData((current) => ({ ...current, lyrics: event.target.value }))
@@ -229,25 +248,23 @@ const Upload = () => {
             <aside className="detail-panel">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Info</p>
-                  <h4>Requirements</h4>
+                  <p className="section-kicker">Checklist</p>
+                  <h4>Before upload</h4>
                 </div>
               </div>
               <div className="info-stack">
-                <ul>
-                  <li>Audio file (MP3, WAV, OGG, M4A, FLAC)</li>
-                  <li>Title and artist information</li>
-                  <li>Cover image (optional)</li>
-                  <li>Lyrics (optional)</li>
-                </ul>
+                <p>Use a clear title and artist name.</p>
+                <p>Add cover art if you have it.</p>
+                <p>Synced lyrics use <code>[mm:ss]</code> or <code>[mm:ss.xx]</code>.</p>
+                <p>Uploads appear in playlist menus right away.</p>
               </div>
             </aside>
 
             <aside className="detail-panel upload-stage">
               <div className="detail-panel-header">
                 <div>
-                  <p className="section-kicker">Files</p>
-                  <h4>Formats</h4>
+                  <p className="section-kicker">Summary</p>
+                  <h4>What goes live</h4>
                 </div>
               </div>
 
@@ -266,7 +283,7 @@ const Upload = () => {
                     ? 'Full lyrics + practice mode'
                     : formData.lyrics.trim()
                       ? 'Full lyrics only'
-                      : 'No lyrics attached yet'}
+                      : 'No lyrics yet'}
                 </span>
               </div>
             </aside>

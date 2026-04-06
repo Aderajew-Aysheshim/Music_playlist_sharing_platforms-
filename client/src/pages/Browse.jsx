@@ -176,8 +176,8 @@ const Browse = () => {
             <Compass size={14} />
             Browse
           </span>
-          <h1>Discover Playlists</h1>
-          <p>Explore community collections</p>
+          <h1>Explore public playlists.</h1>
+          <p>Search, play, like, and comment.</p>
         </div>
       </section>
 
@@ -227,11 +227,15 @@ const Browse = () => {
                   <div className="playlist-card-header">
                     <button className="playlist-summary" onClick={() => toggleExpand(playlist.id)}>
                       <div className="playlist-summary-art">
-                        <ListMusic size={18} />
+                        {playlist.playlistCoverImageUrl ? (
+                          <img src={playlist.playlistCoverImageUrl} alt={playlist.name} />
+                        ) : (
+                          <ListMusic size={18} />
+                        )}
                       </div>
                       <div className="playlist-summary-copy">
                         <h3>{playlist.name}</h3>
-                        <p>{playlist.description || 'Public playlist'}</p>
+                        <p>{playlist.description || 'Public playlist.'}</p>
                         <div className="chip-row">
                           <span className="metric-pill">{playlist.songCount} songs</span>
                           <span className="metric-pill">{playlist.likesCount} likes</span>
@@ -305,9 +309,11 @@ const Browse = () => {
                       <PlaylistComments
                         comments={comments}
                         draft={commentDrafts[playlist.id] || ''}
+                        canComment={isAuthenticated}
                         currentUserId={user?.id}
                         ownerUsername={playlist.ownerName}
                         currentUsername={user?.username}
+                        disabledMessage="Sign in to comment."
                         onDraftChange={(value) =>
                           setCommentDrafts((current) => ({
                             ...current,

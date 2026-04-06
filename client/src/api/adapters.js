@@ -54,6 +54,37 @@ export const flattenPlaylistSongs = (entries = []) => entries
   })
   .filter(Boolean);
 
+const getPlaylistCoverImageUrl = (songs = []) => {
+  if (!songs.length) {
+    return null;
+  }
+
+  const latestCoveredSong = songs.reduce((latest, song) => {
+    if (!song?.coverImageUrl) {
+      return latest;
+    }
+
+    if (!latest) {
+      return song;
+    }
+
+    const latestEntryId = latest.playlistSongId ?? -1;
+    const currentEntryId = song.playlistSongId ?? -1;
+
+    if (currentEntryId > latestEntryId) {
+      return song;
+    }
+
+    if (currentEntryId === latestEntryId && (song.order ?? 0) > (latest.order ?? 0)) {
+      return song;
+    }
+
+    return latest;
+  }, null);
+
+  return latestCoveredSong?.coverImageUrl ?? null;
+};
+
 export const normalizePlaylist = (playlist) => {
   if (!playlist) {
     return null;
@@ -79,6 +110,7 @@ export const normalizePlaylist = (playlist) => {
     shareToken: playlist.share_token ?? null,
     shareUrl: playlist.share_url ?? null,
     collaborators: playlist.collaborators ?? [],
+    playlistCoverImageUrl: getPlaylistCoverImageUrl(songs),
   };
 };
 

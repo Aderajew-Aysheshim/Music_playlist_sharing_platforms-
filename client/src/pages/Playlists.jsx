@@ -515,7 +515,13 @@ const Playlists = () => {
                   <div className="playlist-card-header">
                     <button className="playlist-summary" onClick={() => toggleExpand(playlist.id)}>
                       <div className="playlist-summary-art">
-                        {playlist.isPublic ? <Globe size={18} /> : <Lock size={18} />}
+                        {playlist.playlistCoverImageUrl ? (
+                          <img src={playlist.playlistCoverImageUrl} alt={playlist.name} />
+                        ) : playlist.isPublic ? (
+                          <Globe size={18} />
+                        ) : (
+                          <Lock size={18} />
+                        )}
                       </div>
                       <div className="playlist-summary-copy">
                         <h3>{playlist.name}</h3>
@@ -724,7 +730,7 @@ const Playlists = () => {
                               <span className="metric-pill">
                                 {playlist.isPublic ? 'Public' : 'Private'}
                               </span>
-                              <p>You can view this playlist because your role is {playlist.userRole}.</p>
+                              <p>Role: {playlist.userRole}.</p>
                             </div>
                           )}
                         </section>
